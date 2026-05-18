@@ -8,32 +8,30 @@ namespace RhMcp.Integration.Tests;
 internal sealed class CloseSlotTests : SharedRouterFixture
 {
     // Regression: a status-agnostic existence check is required so launching
-    // slots are not mistaken for missing slots. The structured shape
-    // (closed=false, error="slot_not_found", message=...) is what agents key
-    // off of when deciding whether to retry, list slots, etc.
+    // slots are not mistaken for missing slots. The envelope's `error` field
+    // is a structured ErrorInfo { code, message } that agents key off of when
+    // deciding whether to retry, list slots, etc.
     [Test]
     public async Task close_slot_returns_slot_not_found_for_unknown_slot()
     {
-        string json = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", "does-not-exist")));
+        ReturnResult result = await _router.CallToolAsync("close_slot", Args.Of(("slot", "does-not-exist")));
 
-        Assert.That(json, Json.HasProperty("closed", Is.False));
-        Assert.That(json, Json.HasProperty("error", Is.EqualTo("slot_not_found")));
-        Assert.That(json, Json.HasProperty("message", Does.Contain("does-not-exist")));
-        Assert.That(json, Json.HasProperty("message", Does.Contain("list_slots")));
+        Assert.That(result.Error?.Code, Is.EqualTo("slot_not_found"));
+        Assert.That(result.Error?.Message, Does.Contain("does-not-exist"));
+        Assert.That(result.Error?.Message, Does.Contain("list_slots"));
+        Assert.That(result.Payload, Is.Null);
     }
 
-    // The advertised JSON shape promises null fields are omitted; this also
-    // doubles as a check that the JsonIgnoreCondition.WhenWritingNull policy
-    // is still in effect for the close-slot result type.
+    // The advertised envelope promises null fields are omitted. The source-gen
+    // policy is pinned by Router.Tests/ReturnResultTests; this end-to-end version
+    // catches the orthogonal failure mode of something downstream (MCP SDK
+    // transport, content-block wrap) re-introducing the null fields.
     [Test]
-    public async Task close_slot_omits_error_when_payload_is_unrelated_to_an_error_state()
+    public async Task close_slot_failure_envelope_omits_payload_and_autoSpawnedSlot_on_the_wire()
     {
-        // No slot exists, so this still goes through the slot_not_found path,
-        // but proves the negation: when error IS set, message is set too, and
-        // neither is the literal string "null".
         string json = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", "another-bogus-slot")));
 
-        Assert.That(json, Does.Not.Contain("\"error\":null"));
-        Assert.That(json, Does.Not.Contain("\"message\":null"));
+        Assert.That(json, Does.Not.Contain("\"payload\":null"));
+        Assert.That(json, Does.Not.Contain("\"autoSpawnedSlot\":null"));
     }
 }

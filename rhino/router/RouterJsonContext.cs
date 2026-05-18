@@ -15,7 +15,6 @@ namespace RhMcp.Router;
 // Router-specific types.
 [JsonSerializable(typeof(ChildRhino))]
 [JsonSerializable(typeof(IReadOnlyCollection<ChildRhino>))]
-[JsonSerializable(typeof(SpawnErrorPayload))]
 [JsonSerializable(typeof(RhinoCrashReport))]
 [JsonSerializable(typeof(JsonRpcRequest))]
 [JsonSerializable(typeof(JsonRpcRequestParams))]
@@ -23,8 +22,8 @@ namespace RhMcp.Router;
 [JsonSerializable(typeof(CloseListenerArgs))]
 [JsonSerializable(typeof(QuitAppArgs))]
 [JsonSerializable(typeof(Announcement))]
-[JsonSerializable(typeof(CloseSlotResult))]
 [JsonSerializable(typeof(ReturnResult))]
+[JsonSerializable(typeof(ErrorInfo))]
 [JsonSerializable(typeof(SlotInfo))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(JsonElement))]
@@ -59,15 +58,6 @@ public sealed record JsonRpcRequestParams(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("arguments")] JsonNode Arguments);
 
-// SpawnSlotTool's catch-block payload. `error` is a stable kebab-case code the
-// agent can branch on; `message` is human-readable detail ending in what the
-// agent should do next. `crashReport` is populated when the failure can be
-// traced to a known Rhino crash (Mac only — see RhinoCrashReportFinder).
-public sealed record SpawnErrorPayload(
-    [property: JsonPropertyName("error")] string Error,
-    [property: JsonPropertyName("message")] string Message,
-    [property: JsonPropertyName("crashReport")] RhinoCrashReport? CrashReport = null);
-
 // Compact summary of a macOS .ips crash report. Just the agent-actionable bits
 // — not the full 100KB body. `path` points at the report on disk for human
 // follow-up.
@@ -98,15 +88,6 @@ public sealed record CloseListenerArgs(
     [property: JsonPropertyName("port")] int Port);
 
 public sealed record QuitAppArgs();
-
-// close_slot's structured response. `closed=true` is the happy path;
-// `closed=false` covers both "no such slot" and "refused" cases, with `error`
-// and `message` populated when there's a specific reason the agent should
-// know about (e.g. the slot was adopted from a user-started Rhino).
-public sealed record CloseSlotResult(
-    [property: JsonPropertyName("closed")] bool Closed,
-    [property: JsonPropertyName("error")] string? Error = null,
-    [property: JsonPropertyName("message")] string? Message = null);
 
 // Drop-file shape written by the plugin into <temp>/rhino-mcp-listeners/.
 // `v` is a schema version — bump only if the file shape changes in a

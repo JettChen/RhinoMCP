@@ -4,20 +4,28 @@ using System.Text.Json.Serialization;
 
 namespace RhMcp.Router;
 
-// Unified envelope every router tool call returns. The MCP SDK delivers a
-// single string to the agent per call, so we serialize this record into that
-// string.
+// Unified envelope every router tool call returns.
 public sealed record ReturnResult(
     [property: JsonPropertyName("payload")] JsonNode? Payload,
-    [property: JsonPropertyName("error")] string? Error = null,
+    [property: JsonPropertyName("error")] ErrorInfo? Error = null,
     [property: JsonPropertyName("autoSpawnedSlot")] SlotInfo? AutoSpawnedSlot = null)
 {
+    // Without [JsonIgnore], source-gen treats AsJson as a property and recurses
+    // through Serialize until the stack overflows.
+    [JsonIgnore]
     public string AsJson => JsonSerializer.Serialize(this, RouterJsonContext.Default.ReturnResult);
 }
 
-// Side-effect descriptor for an auto-spawn the router performed on the agent's
-// behalf. `reason` is a sentence the agent can surface to the user verbatim
-// (e.g. "Auto-spawned Rhino WIP because 'g2_search_components' requires it.").
+// `Code` is the stable kebab-case identifier agents branch on. `Message` ends
+// with what the agent should do next. `CrashReportPath` stays typed so agents
+// don't have to parse it out of the message.
+public sealed record ErrorInfo(
+    [property: JsonPropertyName("code")] string Code,
+    [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("crashReportPath")] string? CrashReportPath = null);
+
+// Populated only when the call caused a new Rhino to be spawned. `Reason` is
+// surfaced to the user verbatim.
 public sealed record SlotInfo(
     [property: JsonPropertyName("slotId")] string SlotId,
     [property: JsonPropertyName("version")] string Version,

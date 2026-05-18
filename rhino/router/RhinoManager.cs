@@ -23,9 +23,6 @@ public class RhinoManager(
     SlotStore store,
     ILogger<RhinoManager> log)
 {
-    // Version is appended (e.g. "default-WIP") so GH2 tools don't collide with non-GH2 tools.
-    public const string DefaultSlotPrefix = "default-";
-
     // Manually-started Rhino lives on 10500; children walk forward from there.
     private const int ChildPortBase = 10500;
     private const int SpawnTimeoutSeconds = 60;
@@ -35,44 +32,33 @@ public class RhinoManager(
 
     public Task<ChildRhino> SpawnAsync(string? version = null, CancellationToken ct = default)
     {
-        var resolved = version ?? config.DefaultVersion;
+        string resolved = version ?? config.DefaultVersion;
         store.ReapStaleLaunching(StaleLaunchingMaxAge);
         ReapAllDead();
-        var (reservation, slotId) = store.ReserveNewNamed(resolved, _routerPid);
+        (SlotReservation reservation, string slotId) = store.ReserveNewNamed(resolved, _routerPid);
         return DispatchReservationAsync(resolved, slotId, reservation, ct);
     }
 
-    // Lazily return the default slot for `version`, spawning a Rhino if needed.
-    // Prefers an adopted user-started Rhino on the matching version — manual launch
-    // is the strongest signal that the user wants that Rhino used.
-    public async Task<ChildRhino> GetOrCreateDefaultAsync(string? version = null, CancellationToken ct = default)
+    // Resolves the Rhino to serve a slot-less tool call. Prefers an adopted
+    // user-started Rhino (any router), else reuses a slot this router already
+    // owns, else spawns a fresh animal-named one. `WasNewlySpawned` lets the
+    // dispatcher tell the agent via ReturnResult.autoSpawnedSlot.
+    public async Task<(ChildRhino Child, bool WasNewlySpawned)> GetOrCreateDefaultAsync(
+        string? version = null, CancellationToken ct = default)
     {
         ScanAnnouncements();
         string resolved = version ?? config.DefaultVersion;
-        string slotId = DefaultSlotPrefix + resolved;
 
-        var ready = store.ListReady().Where(c => c.Version == resolved).ToList();
+        ChildRhino? adopted = store.ListReady()
+            .FirstOrDefault(c => c.Version == resolved && c.Adopted);
+        if (adopted is not null) return (adopted, false);
 
-        var adopted = ready.FirstOrDefault(c => c.Adopted);
-        if (adopted is not null) return adopted;
+        ChildRhino? mine = store.ListAllOwnedBy(_routerPid)
+            .FirstOrDefault(c => c.Status == SlotStatus.Ready && c.Version == resolved && !c.Adopted);
+        if (mine is not null) return (mine, false);
 
-        var existingDefault = ready.FirstOrDefault(c => c.SlotId == slotId);
-        if (existingDefault is not null) return existingDefault;
-
-        var existingOther = ready.OrderBy(c => c.SlotId, StringComparer.Ordinal).FirstOrDefault();
-        if (existingOther is not null) return existingOther;
-
-        return await SpawnInternalAsync(resolved, slotId, ct).ConfigureAwait(false);
-    }
-
-    private async Task<ChildRhino> SpawnInternalAsync(string version, string slotId, CancellationToken ct)
-    {
-        // Drop stale 'launching' rows first so a crashed router doesn't make us wait 90s.
-        store.ReapStaleLaunching(StaleLaunchingMaxAge);
-        ReapAllDead();
-
-        var reservation = store.Reserve(slotId, version, _routerPid);
-        return await DispatchReservationAsync(version, slotId, reservation, ct).ConfigureAwait(false);
+        ChildRhino spawned = await SpawnAsync(resolved, ct).ConfigureAwait(false);
+        return (spawned, true);
     }
 
     private async Task<ChildRhino> DispatchReservationAsync(

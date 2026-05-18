@@ -13,7 +13,7 @@ internal sealed class ListSlotsTests : SharedRouterFixture
     [Test]
     public async Task list_slots_is_empty_for_freshly_spawned_router()
     {
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(0));
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(0));
     }
 }

@@ -15,15 +15,15 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     [Test]
     public async Task g2_start_in_rhino_8_produces_distinct_slot()
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        _ = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
 
-        string gh2Json = await _router.CallToolTextAsync("g2_start");
-        Assert.That(gh2Json, Does.Contain("Opened G2").IgnoreCase);
+        ReturnResult gh2 = await _router.CallToolAsync("g2_start");
+        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened G2").IgnoreCase);
 
-        string slotJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(slotJson, Json.IsArrayOfLength(2));
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(2));
 
-        List<JsonElement> slots = JsonAssert.Parse(slotJson).EnumerateArray().ToList();
+        List<JsonElement> slots = list.Payload!.Value.EnumerateArray().ToList();
         foreach (string property in new[] { "slotId", "port", "endpoint" })
         {
             HashSet<string> set = slots.Select(j => j.GetProperty(property).ToString().ToLowerInvariant()).ToHashSet();
@@ -36,11 +36,11 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     [Test]
     public async Task g2_start_with_no_host_spawns_one_slot()
     {
-        string gh2Json = await _router.CallToolTextAsync("g2_start");
-        Assert.That(gh2Json, Does.Contain("Opened G2").IgnoreCase);
+        ReturnResult gh2 = await _router.CallToolAsync("g2_start");
+        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened G2").IgnoreCase);
 
-        string slotJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(slotJson, Json.IsArrayOfLength(1));
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(1));
 
         // TODO : Assert that current slot is Rhino WIP
     }
@@ -49,9 +49,9 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     [TestCase("WIP")]
     public async Task g1_start_inside_rhino_opens_grasshopper(string version)
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", version)));
+        _ = await _router.CallToolAsync("spawn_slot", Args.Of(("version", version)));
 
-        string gh1Json = await _router.CallToolTextAsync("g1_start");
-        Assert.That(gh1Json, Does.Contain("Opened Grasshopper").IgnoreCase);
+        ReturnResult gh1 = await _router.CallToolAsync("g1_start");
+        Assert.That(gh1.Payload?.GetString(), Does.Contain("Opened Grasshopper").IgnoreCase);
     }
 }

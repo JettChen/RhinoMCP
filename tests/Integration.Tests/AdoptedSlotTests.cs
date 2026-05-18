@@ -23,15 +23,15 @@ internal sealed class AdoptedSlotTests : RouterFixture
         using FakeListener listener = FakeListener.Start();
         DropAnnouncement(version: "8", port: listener.Port, pid: Environment.ProcessId);
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        JsonElement slot = JsonAssert.Parse(json)[0];
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(1));
 
-        Assert.That(JsonAssert.Parse(json).GetArrayLength(), Is.EqualTo(1));
-        Assert.That(slot, Json.HasProperty("adopted", Is.True));
-        Assert.That(slot, Json.HasProperty("version", Is.EqualTo("8")));
-        Assert.That(slot, Json.HasProperty("port", Is.EqualTo(listener.Port)));
-        Assert.That(slot, Json.HasProperty("pid", Is.EqualTo(Environment.ProcessId)));
-        Assert.That(slot, Json.HasProperty("slotId", Is.Not.Empty));
+        JsonElement slot = result.Payload!.Value[0];
+        Assert.That(slot.GetProperty("adopted").GetBoolean(), Is.True);
+        Assert.That(slot.GetProperty("version").GetString(), Is.EqualTo("8"));
+        Assert.That(slot.GetProperty("port").GetInt32(), Is.EqualTo(listener.Port));
+        Assert.That(slot.GetProperty("pid").GetInt32(), Is.EqualTo(Environment.ProcessId));
+        Assert.That(slot.GetProperty("slotId").GetString(), Is.Not.Empty);
     }
 
     [Test]
@@ -40,19 +40,18 @@ internal sealed class AdoptedSlotTests : RouterFixture
         using FakeListener listener = FakeListener.Start();
         DropAnnouncement(version: "WIP", port: listener.Port, pid: Environment.ProcessId);
 
-        string listJson = await _router.CallToolTextAsync("list_slots");
-        string slotId = JsonAssert.Parse(listJson)[0].GetProperty("slotId").GetString()!;
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        string slotId = list.Payload!.Value[0].GetProperty("slotId").GetString()!;
 
-        string closeJson = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotId)));
+        ReturnResult close = await _router.CallToolAsync("close_slot", Args.Of(("slot", slotId)));
 
-        Assert.That(closeJson, Json.HasProperty("closed", Is.False));
-        Assert.That(closeJson, Json.HasProperty("error", Is.EqualTo("cannot_close_adopted")));
-        Assert.That(closeJson, Json.HasProperty("message", Does.Contain("Rhino window")));
+        Assert.That(close.Error?.Code, Is.EqualTo("cannot_close_adopted"));
+        Assert.That(close.Error?.Message, Does.Contain("Rhino window"));
 
         // The slot must still be present after a refused close — adoption is
         // sticky until the listener actually dies.
-        string listAgain = await _router.CallToolTextAsync("list_slots");
-        Assert.That(listAgain, Json.IsArrayOfLength(1));
+        ReturnResult listAgain = await _router.CallToolAsync("list_slots");
+        Assert.That(listAgain.Payload?.GetArrayLength(), Is.EqualTo(1));
     }
 
     [Test]
@@ -62,15 +61,15 @@ internal sealed class AdoptedSlotTests : RouterFixture
         DropAnnouncement(version: "8", port: listener.Port, pid: Environment.ProcessId);
 
         // First list_slots adopts; the file is then deleted by the router.
-        _ = await _router.CallToolTextAsync("list_slots");
+        _ = await _router.CallToolAsync("list_slots");
 
         // Plugin races and drops the same announcement again before noticing the
         // first one was already consumed. The (pid, port) dedupe in AdoptIfNew
         // must reject it.
         DropAnnouncement(version: "8", port: listener.Port, pid: Environment.ProcessId);
-        string json = await _router.CallToolTextAsync("list_slots");
+        ReturnResult result = await _router.CallToolAsync("list_slots");
 
-        Assert.That(json, Json.IsArrayOfLength(1));
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(1));
     }
 
     [Test]
@@ -80,8 +79,8 @@ internal sealed class AdoptedSlotTests : RouterFixture
         int deadPort = AllocateUnboundPort();
         DropAnnouncement(version: "8", port: deadPort, pid: Environment.ProcessId);
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(0));
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(0));
 
         // And the doorbell file should have been deleted by the scan.
         Assert.That(Directory.GetFiles(_router.ListenersDir, "*.json"), Is.Empty);

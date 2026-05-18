@@ -61,6 +61,19 @@ public sealed class RhinoMcpRouter : IAsyncDisposable
         return string.Concat(result.Content.OfType<TextContentBlock>().Select(t => t.Text));
     }
 
+    // Typed view of the router's ReturnResult envelope. Bypass: get_viewport_image
+    // returns binary content blocks, not the envelope — use CallToolTextAsync for it.
+    public async Task<ReturnResult> CallToolAsync(
+        string toolName,
+        Dictionary<string, object?>? arguments = null,
+        CancellationToken ct = default)
+    {
+        string json = await CallToolTextAsync(toolName, arguments, ct);
+        return JsonSerializer.Deserialize<ReturnResult>(json)
+            ?? throw new InvalidOperationException(
+                $"Tool '{toolName}' returned a null ReturnResult envelope: {json}");
+    }
+
     public async ValueTask DisposeAsync()
     {
         try
@@ -78,7 +91,3 @@ public sealed class RhinoMcpRouter : IAsyncDisposable
     }
 }
 
-internal static class JsonAssert
-{
-    public static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
-}

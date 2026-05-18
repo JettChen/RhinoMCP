@@ -34,8 +34,8 @@ public sealed class MultiRouterTests : SharedRouterFixture
         _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
         _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(1));
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(1));
     }
 
     // TODO : Each isolated router currently shares an adopted slot via the
@@ -53,8 +53,8 @@ public sealed class MultiRouterTests : SharedRouterFixture
         _ = await _router2.CallToolTextAsync("list_objects", Args.Of(("version", version)));
         _ = await _router3.CallToolTextAsync("list_objects", Args.Of(("version", version)));
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(1));
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(1));
     }
 
     // Calling list_objects for two different versions in the same router
@@ -65,7 +65,7 @@ public sealed class MultiRouterTests : SharedRouterFixture
         _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", "8")));
         _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", "WIP")));
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(2));
+        ReturnResult result = await _router.CallToolAsync("list_slots");
+        Assert.That(result.Payload?.GetArrayLength(), Is.EqualTo(2));
     }
 }

@@ -17,25 +17,25 @@ internal sealed class SpawnSlotTests : SharedRouterFixture
     [TestCase("WIP")]
     public async Task spawn_slot_returns_slot_metadata(string version)
     {
-        string spawnJson = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", version)));
+        ReturnResult result = await _router.CallToolAsync("spawn_slot", Args.Of(("version", version)));
 
-        Assert.That(spawnJson, Json.HasProperty("slotId", Is.Not.Empty));
-        Assert.That(spawnJson, Json.HasProperty("version", Is.EqualTo(version)));
-        Assert.That(spawnJson, Json.HasProperty("adopted", Is.False));
+        Assert.That(result.Payload?.GetProperty("slotId").GetString(), Is.Not.Empty);
+        Assert.That(result.Payload?.GetProperty("version").GetString(), Is.EqualTo(version));
+        Assert.That(result.Payload?.GetProperty("adopted").GetBoolean(), Is.False);
     }
 
     [Test]
     public async Task spawn_three_slots_returns_distinct_metadata()
     {
-        string json_1 = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string json_2 = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string json_3 = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult r1 = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult r2 = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult r3 = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
 
-        foreach (string json in new[] { json_1, json_2, json_3 })
+        foreach (ReturnResult result in new[] { r1, r2, r3 })
         {
-            Assert.That(json, Json.HasProperty("slotId", Is.Not.Empty));
-            Assert.That(json, Json.HasProperty("version", Is.EqualTo("8")));
-            Assert.That(json, Json.HasProperty("adopted", Is.False));
+            Assert.That(result.Payload?.GetProperty("slotId").GetString(), Is.Not.Empty);
+            Assert.That(result.Payload?.GetProperty("version").GetString(), Is.EqualTo("8"));
+            Assert.That(result.Payload?.GetProperty("adopted").GetBoolean(), Is.False);
         }
     }
 
@@ -43,15 +43,15 @@ internal sealed class SpawnSlotTests : SharedRouterFixture
     [Test]
     public async Task spawn_then_close_slot_round_trip()
     {
-        string openJson = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult open = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
 
-        Assert.That(openJson, Json.HasProperty("slotId", Is.Not.Empty));
-        Assert.That(openJson, Json.HasProperty("version", Is.EqualTo("8")));
-        Assert.That(openJson, Json.HasProperty("adopted", Is.False));
+        Assert.That(open.Payload?.GetProperty("slotId").GetString(), Is.Not.Empty);
+        Assert.That(open.Payload?.GetProperty("version").GetString(), Is.EqualTo("8"));
+        Assert.That(open.Payload?.GetProperty("adopted").GetBoolean(), Is.False);
 
-        string slotId = JsonAssert.Parse(openJson).GetProperty("slotId").GetString()!;
+        string slotId = open.Payload!.Value.GetProperty("slotId").GetString()!;
 
-        string closeJson = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotId)));
-        Assert.That(closeJson, Json.HasProperty("closed", Is.True));
+        ReturnResult close = await _router.CallToolAsync("close_slot", Args.Of(("slot", slotId)));
+        Assert.That(close.Payload?.GetProperty("closed").GetBoolean(), Is.True);
     }
 }

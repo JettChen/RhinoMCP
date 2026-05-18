@@ -20,13 +20,13 @@ public sealed class MacSharedProcessTests : RouterFixture
     [Test]
     public async Task two_slots_same_version_share_pid_and_use_distinct_ports()
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        _ = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        _ = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
 
-        string json = await _router.CallToolTextAsync("list_slots");
-        Assert.That(json, Json.IsArrayOfLength(2));
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(2));
 
-        List<JsonElement> slots = JsonAssert.Parse(json).EnumerateArray().ToList();
+        List<JsonElement> slots = list.Payload!.Value.EnumerateArray().ToList();
         HashSet<int> pids = slots.Select(s => s.GetProperty("pid").GetInt32()).ToHashSet();
         HashSet<int> ports = slots.Select(s => s.GetProperty("port").GetInt32()).ToHashSet();
 
@@ -37,43 +37,43 @@ public sealed class MacSharedProcessTests : RouterFixture
     [Test]
     public async Task closing_first_of_two_mac_siblings_keeps_rhino_alive()
     {
-        string spawnA = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string spawnB = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string slotA = JsonAssert.Parse(spawnA).GetProperty("slotId").GetString()!;
-        string slotB = JsonAssert.Parse(spawnB).GetProperty("slotId").GetString()!;
-        int sharedPid = JsonAssert.Parse(spawnA).GetProperty("pid").GetInt32();
+        ReturnResult spawnA = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult spawnB = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        string slotA = spawnA.Payload!.Value.GetProperty("slotId").GetString()!;
+        string slotB = spawnB.Payload!.Value.GetProperty("slotId").GetString()!;
+        int sharedPid = spawnA.Payload.Value.GetProperty("pid").GetInt32();
 
-        string closeJson = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotA)));
-        Assert.That(closeJson, Json.HasProperty("closed", Is.True));
+        ReturnResult close = await _router.CallToolAsync("close_slot", Args.Of(("slot", slotA)));
+        Assert.That(close.Payload?.GetProperty("closed").GetBoolean(), Is.True);
 
         // Slot B must still be in the registry and its pid (which was shared
         // with A) must still be alive — the listener for A was closed via the
         // control channel, but the Rhino process keeps running for B.
-        string listJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(listJson, Json.IsArrayOfLength(1));
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(1));
 
-        JsonElement remaining = JsonAssert.Parse(listJson)[0];
-        Assert.That(remaining, Json.HasProperty("slotId", Is.EqualTo(slotB)));
-        Assert.That(remaining, Json.HasProperty("pid", Is.EqualTo(sharedPid)));
+        JsonElement remaining = list.Payload!.Value[0];
+        Assert.That(remaining.GetProperty("slotId").GetString(), Is.EqualTo(slotB));
+        Assert.That(remaining.GetProperty("pid").GetInt32(), Is.EqualTo(sharedPid));
         Assert.That(IsProcessAlive(sharedPid), Is.True, "Shared Rhino process must outlive close_slot on a sibling.");
     }
 
     [Test]
     public async Task closing_last_mac_sibling_terminates_rhino()
     {
-        string spawnA = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string spawnB = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string slotA = JsonAssert.Parse(spawnA).GetProperty("slotId").GetString()!;
-        string slotB = JsonAssert.Parse(spawnB).GetProperty("slotId").GetString()!;
-        int sharedPid = JsonAssert.Parse(spawnA).GetProperty("pid").GetInt32();
+        ReturnResult spawnA = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult spawnB = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        string slotA = spawnA.Payload!.Value.GetProperty("slotId").GetString()!;
+        string slotB = spawnB.Payload!.Value.GetProperty("slotId").GetString()!;
+        int sharedPid = spawnA.Payload.Value.GetProperty("pid").GetInt32();
 
-        _ = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotA)));
-        _ = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotB)));
+        _ = await _router.CallToolAsync("close_slot", Args.Of(("slot", slotA)));
+        _ = await _router.CallToolAsync("close_slot", Args.Of(("slot", slotB)));
 
         Assert.That(IsProcessAlive(sharedPid), Is.False, "Closing the last sibling must terminate the shared Rhino.");
 
-        string listJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(listJson, Json.IsArrayOfLength(0));
+        ReturnResult list = await _router.CallToolAsync("list_slots");
+        Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(0));
     }
 
     private static bool IsProcessAlive(int pid)

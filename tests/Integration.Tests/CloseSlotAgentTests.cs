@@ -57,7 +57,7 @@ public sealed class CloseSlotAgentTests : AgenticTestBase
 
         // The JSON property assertions auto-unwrap the MCP content envelope,
         // so we don't have to care whether the harness flattened it for us.
-        Assert.That(close.Result, Json.HasProperty("closed", Is.False));
-        Assert.That(close.Result, Json.HasProperty("error", Is.EqualTo("slot_not_found")));
+        // Failure envelopes carry a structured `error: { code, message }`.
+        Assert.That(close.Result, Json.HasProperty("error", Json.HasProperty("code", Is.EqualTo("slot_not_found"))));
     }
 }

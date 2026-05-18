@@ -16,13 +16,13 @@ public sealed class ToolDispatchBySlotTests : RouterFixture
     [Test]
     public async Task explicit_slot_routes_to_correct_rhino()
     {
-        string spawnA = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string spawnB = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
-        string slotA = JsonAssert.Parse(spawnA).GetProperty("slotId").GetString()!;
-        string slotB = JsonAssert.Parse(spawnB).GetProperty("slotId").GetString()!;
+        ReturnResult spawnA = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        ReturnResult spawnB = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
+        string slotA = spawnA.Payload!.Value.GetProperty("slotId").GetString()!;
+        string slotB = spawnB.Payload!.Value.GetProperty("slotId").GetString()!;
 
         // Drop three lines into slot A; leave slot B untouched.
-        _ = await _router.CallToolTextAsync("run_python", Args.Of(
+        _ = await _router.CallToolAsync("run_python", Args.Of(
             ("slot", (object?)slotA),
             ("script", """
                 from Rhino.Geometry import Point3d, Line
@@ -31,13 +31,13 @@ public sealed class ToolDispatchBySlotTests : RouterFixture
                     doc.Objects.AddLine(Line(Point3d(i, 0, 0), Point3d(i, 1, 0)))
                 """)));
 
-        string listA = await _router.CallToolTextAsync("list_objects", Args.Of(("slot", slotA)));
-        string listB = await _router.CallToolTextAsync("list_objects", Args.Of(("slot", slotB)));
+        ReturnResult listA = await _router.CallToolAsync("list_objects", Args.Of(("slot", slotA)));
+        ReturnResult listB = await _router.CallToolAsync("list_objects", Args.Of(("slot", slotB)));
 
         Assert.Multiple((Action)(() =>
         {
-            Assert.That(listA, Json.HasProperty("count", Is.EqualTo(3)));
-            Assert.That(listB, Json.HasProperty("count", Is.EqualTo(0)));
+            Assert.That(listA.Payload?.GetProperty("count").GetInt32(), Is.EqualTo(3));
+            Assert.That(listB.Payload?.GetProperty("count").GetInt32(), Is.EqualTo(0));
         }));
     }
 
@@ -47,11 +47,11 @@ public sealed class ToolDispatchBySlotTests : RouterFixture
         // No spawn — just call a plugin tool with a bogus slot id. The router
         // must short-circuit in the dispatcher with a structured error, not
         // attempt to auto-spawn and not hang.
-        string response = await _router.CallToolTextAsync(
+        ReturnResult response = await _router.CallToolAsync(
             "list_objects",
             Args.Of(("slot", "made-up-slot-xyz")));
 
-        Assert.That(response, Json.HasProperty("error", Is.EqualTo("slot_not_found")));
-        Assert.That(response, Json.HasProperty("message", Does.Contain("made-up-slot-xyz")));
+        Assert.That(response.Error?.Code, Is.EqualTo("slot_not_found"));
+        Assert.That(response.Error?.Message, Does.Contain("made-up-slot-xyz"));
     }
 }

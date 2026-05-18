@@ -20,13 +20,13 @@ internal sealed class PluginToolTests : SharedRouterFixture
     [OneTimeSetUp]
     public async Task SpawnSharedSlot()
     {
-        string spawnJson = await _router.CallToolTextAsync("spawn_slot");
-        if (JsonAssert.Parse(spawnJson).TryGetProperty("error", out _))
+        ReturnResult spawn = await _router.CallToolAsync("spawn_slot");
+        if (spawn.Error is not null)
         {
             Assert.Inconclusive(
-                $"spawn_slot failed; cannot run plugin-side tests. Payload: {spawnJson}");
+                $"spawn_slot failed; cannot run plugin-side tests. Error: {spawn.Error.Code}: {spawn.Error.Message}");
         }
-        _slot = JsonAssert.Parse(spawnJson).GetProperty("slotId").GetString()!;
+        _slot = spawn.Payload!.Value.GetProperty("slotId").GetString()!;
     }
 
     // Runs before the base disposes the router.
@@ -51,10 +51,11 @@ internal sealed class PluginToolTests : SharedRouterFixture
     [Test]
     public async Task get_commands_with_underscore_filter_does_not_return_every_command()
     {
-        string text = await _router.CallToolTextAsync(
+        ReturnResult result = await _router.CallToolAsync(
             "get_commands",
             Args.Of(("slot", (object?)_slot), ("filter", "_")));
 
+        string? text = result.Payload?.GetString();
         Assert.That(text, Does.Contain("No commands found"),
             $"Expected no matches for filter '_'; got:\n{text}");
     }
@@ -64,10 +65,11 @@ internal sealed class PluginToolTests : SharedRouterFixture
     [Test]
     public async Task get_commands_strips_leading_underscore_in_user_filter()
     {
-        string text = await _router.CallToolTextAsync(
+        ReturnResult result = await _router.CallToolAsync(
             "get_commands",
             Args.Of(("slot", (object?)_slot), ("filter", "_Box")));
 
+        string? text = result.Payload?.GetString();
         Assert.That(text, Does.Contain("Box"));
         Assert.That(text, Does.Not.StartWith("No commands found"));
     }
@@ -89,12 +91,13 @@ internal sealed class PluginToolTests : SharedRouterFixture
                     doc.Objects.AddLine(Line(Point3d(i, 0, 0), Point3d(i, 1, 0)))
                 """)));
 
-        string result = await _router.CallToolTextAsync("set_selection", Args.Of(
+        ReturnResult result = await _router.CallToolAsync("set_selection", Args.Of(
             ("slot", (object?)_slot),
             ("layer", "this-layer-does-not-exist")));
 
-        Assert.That(result, Does.Contain("Selected 0 object(s)"));
-        Assert.That(result, Does.Contain("Layer not found"));
+        string? text = result.Payload?.GetString();
+        Assert.That(text, Does.Contain("Selected 0 object(s)"));
+        Assert.That(text, Does.Contain("Layer not found"));
     }
 
     // Regression: the script tools previously joined captured lines with "\n",
@@ -105,12 +108,13 @@ internal sealed class PluginToolTests : SharedRouterFixture
     [Test]
     public async Task run_python_does_not_double_newlines_between_print_lines()
     {
-        string json = await _router.CallToolTextAsync("run_python", Args.Of(
+        ReturnResult result = await _router.CallToolAsync("run_python", Args.Of(
             ("slot", (object?)_slot),
             ("script", "print(\"first\")\nprint(\"second\")")));
 
-        Assert.That(json, Json.HasProperty("stdout", Does.Contain("first")));
-        Assert.That(json, Json.HasProperty("stdout", Does.Contain("second")));
-        Assert.That(json, Json.HasProperty("stdout", Does.Not.Contain("first\n\nsecond")));
+        string? stdout = result.Payload?.GetProperty("stdout").GetString();
+        Assert.That(stdout, Does.Contain("first"));
+        Assert.That(stdout, Does.Contain("second"));
+        Assert.That(stdout, Does.Not.Contain("first\n\nsecond"));
     }
 }
