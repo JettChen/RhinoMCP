@@ -18,6 +18,8 @@ public class RhinoLocator
 
     private bool TryResolve(string version, out string path)
     {
+        path = string.Empty;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             // TODO: also try registry-based lookup if Program Files paths miss.
@@ -28,6 +30,7 @@ public class RhinoLocator
                 "WIP" => @"C:\Program Files\Rhino 9 WIP",
                 _ => string.Empty
             };
+            if (dir.Length == 0) return false;
             path = Path.Combine(dir, "System", "Rhino.exe");
             return File.Exists(path);
         }
@@ -41,11 +44,15 @@ public class RhinoLocator
                 "WIP" => "RhinoWIP.app",
                 _ => string.Empty
             };
+            // Without this guard an unknown version resolves to "/Applications/",
+            // which Directory.Exists trivially confirms — spawn then attempts
+            // `open -a /Applications/` and we burn the full 60s startup timeout
+            // before reporting failure. Fail fast with rhino_not_installed instead.
+            if (appName.Length == 0) return false;
             path = $"/Applications/{appName}";
             return Directory.Exists(path);
         }
 
-        path = string.Empty;
         return false;
     }
 
