@@ -24,6 +24,8 @@ namespace RhMcp.Router;
 [JsonSerializable(typeof(QuitAppArgs))]
 [JsonSerializable(typeof(Announcement))]
 [JsonSerializable(typeof(CloseSlotResult))]
+[JsonSerializable(typeof(ReturnResult))]
+[JsonSerializable(typeof(SlotInfo))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(JsonElement?))]
