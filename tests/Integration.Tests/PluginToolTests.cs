@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -13,7 +11,7 @@ namespace RhMcp.Integration.Tests;
 [TestFixture]
 [Explicit("Spawns a real Rhino; opt in with --filter \"Category=RequiresRhino\".")]
 [Category("RequiresRhino")]
-public sealed class PluginToolTests : SharedRouterFixture
+internal sealed class PluginToolTests : SharedRouterFixture
 {
     private string _slot = null!;
 
@@ -23,13 +21,12 @@ public sealed class PluginToolTests : SharedRouterFixture
     public async Task SpawnSharedSlot()
     {
         string spawnJson = await _router.CallToolTextAsync("spawn_slot");
-        JsonElement spawn = JsonAssert.Parse(spawnJson);
-        if (spawn.TryGetProperty("error", out _))
+        if (JsonAssert.Parse(spawnJson).TryGetProperty("error", out _))
         {
             Assert.Inconclusive(
                 $"spawn_slot failed; cannot run plugin-side tests. Payload: {spawnJson}");
         }
-        _slot = spawn.GetProperty("slotId").GetString()!;
+        _slot = JsonAssert.Parse(spawnJson).GetProperty("slotId").GetString()!;
     }
 
     // Runs before the base disposes the router.
@@ -40,9 +37,7 @@ public sealed class PluginToolTests : SharedRouterFixture
         {
             try
             {
-                await _router.CallToolTextAsync(
-                    "close_slot",
-                    new Dictionary<string, object?> { ["slot"] = _slot });
+                await _router.CallToolTextAsync("close_slot", Args.Of(("slot", _slot)));
             }
             catch { /* best effort */ }
         }
@@ -58,7 +53,7 @@ public sealed class PluginToolTests : SharedRouterFixture
     {
         string text = await _router.CallToolTextAsync(
             "get_commands",
-            new Dictionary<string, object?> { ["slot"] = _slot, ["filter"] = "_" });
+            Args.Of(("slot", (object?)_slot), ("filter", "_")));
 
         Assert.That(text, Does.Contain("No commands found"),
             $"Expected no matches for filter '_'; got:\n{text}");
@@ -71,7 +66,7 @@ public sealed class PluginToolTests : SharedRouterFixture
     {
         string text = await _router.CallToolTextAsync(
             "get_commands",
-            new Dictionary<string, object?> { ["slot"] = _slot, ["filter"] = "_Box" });
+            Args.Of(("slot", (object?)_slot), ("filter", "_Box")));
 
         Assert.That(text, Does.Contain("Box"));
         Assert.That(text, Does.Not.StartWith("No commands found"));
@@ -85,26 +80,18 @@ public sealed class PluginToolTests : SharedRouterFixture
     public async Task set_selection_with_unresolved_layer_only_selects_nothing()
     {
         // Create a few objects so a select-all bug would be visible.
-        await _router.CallToolTextAsync(
-            "run_python",
-            new Dictionary<string, object?>
-            {
-                ["slot"] = _slot,
-                ["script"] = """
-                    from Rhino.Geometry import Point3d, Line
-                    doc = __rhino_doc__
-                    for i in range(3):
-                        doc.Objects.AddLine(Line(Point3d(i, 0, 0), Point3d(i, 1, 0)))
-                    """,
-            });
+        await _router.CallToolTextAsync("run_python", Args.Of(
+            ("slot", (object?)_slot),
+            ("script", """
+                from Rhino.Geometry import Point3d, Line
+                doc = __rhino_doc__
+                for i in range(3):
+                    doc.Objects.AddLine(Line(Point3d(i, 0, 0), Point3d(i, 1, 0)))
+                """)));
 
-        string result = await _router.CallToolTextAsync(
-            "set_selection",
-            new Dictionary<string, object?>
-            {
-                ["slot"] = _slot,
-                ["layer"] = "this-layer-does-not-exist",
-            });
+        string result = await _router.CallToolTextAsync("set_selection", Args.Of(
+            ("slot", (object?)_slot),
+            ("layer", "this-layer-does-not-exist")));
 
         Assert.That(result, Does.Contain("Selected 0 object(s)"));
         Assert.That(result, Does.Contain("Layer not found"));
@@ -118,22 +105,12 @@ public sealed class PluginToolTests : SharedRouterFixture
     [Test]
     public async Task run_python_does_not_double_newlines_between_print_lines()
     {
-        string json = await _router.CallToolTextAsync(
-            "run_python",
-            new Dictionary<string, object?>
-            {
-                ["slot"] = _slot,
-                ["script"] = "print(\"first\")\nprint(\"second\")",
-            });
+        string json = await _router.CallToolTextAsync("run_python", Args.Of(
+            ("slot", (object?)_slot),
+            ("script", "print(\"first\")\nprint(\"second\")")));
 
-        JsonElement root = JsonAssert.Parse(json);
-        JsonElement content = root.GetProperty("content").EnumerateArray().ToArray()[0];
-        string textJson = content.GetProperty("text").GetString()!;
-        JsonElement text = JsonAssert.Parse(textJson);
-        string stdout = text.GetProperty("stdout").GetString() ?? "";
-        Assert.That(stdout, Does.Contain("first"));
-        Assert.That(stdout, Does.Contain("second"));
-        Assert.That(stdout, Does.Not.Contain("first\n\nsecond"),
-            $"Expected at most a single newline between lines; stdout was:\n{stdout}");
+        Assert.That(json, Json.HasProperty("stdout", Does.Contain("first")));
+        Assert.That(json, Json.HasProperty("stdout", Does.Contain("second")));
+        Assert.That(json, Json.HasProperty("stdout", Does.Not.Contain("first\n\nsecond")));
     }
 }

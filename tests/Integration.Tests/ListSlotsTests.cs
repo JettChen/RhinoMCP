@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -10,14 +8,12 @@ namespace RhMcp.Integration.Tests;
 // Rhino — slot-population behaviour lives in SpawnSlotTests,
 // GrasshopperStartTests, MultiRouterTests.
 [TestFixture]
-public sealed class ListSlotsTests : SharedRouterFixture
+internal sealed class ListSlotsTests : SharedRouterFixture
 {
     [Test]
     public async Task list_slots_is_empty_for_freshly_spawned_router()
     {
         string json = await _router.CallToolTextAsync("list_slots");
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.ValueKind, Is.EqualTo(JsonValueKind.Array));
-        Assert.That(root.GetArrayLength(), Is.EqualTo(0));
+        Assert.That(json, Json.IsArrayOfLength(0));
     }
 }

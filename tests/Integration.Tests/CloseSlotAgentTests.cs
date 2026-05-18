@@ -1,7 +1,3 @@
-using System.Text.Json;
-using Ngentic;
-using Ngentic.NUnit;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -58,34 +54,10 @@ public sealed class CloseSlotAgentTests : AgenticTestBase
         Assert.That(run, Did.CallTool("mcp__rhino__close_slot"));
 
         ToolCall close = run.ToolCalls.First(c => c.Name == "mcp__rhino__close_slot");
-        Assert.That(close.Result, Does.Contain("slot_not_found"),
-            $"close_slot returned without the slot_not_found marker.\nResult: {close.Result}");
 
-        // Belt-and-braces: parse the JSON the tool returned and verify the
-        // structured shape, not just the substring.
-        JsonElement payload = ExtractJsonPayload(close.Result);
-        Assert.That(payload.GetProperty("closed").GetBoolean(), Is.False);
-        Assert.That(payload.GetProperty("error").GetString(), Is.EqualTo("slot_not_found"));
-    }
-
-    // MCP tool results may arrive wrapped in `{"content":[{"type":"text","text":"…"}]}`
-    // when the result block is structured, or as a raw string when the harness
-    // already flattened it. Accept either; tests care about the inner payload.
-    private static JsonElement ExtractJsonPayload(string raw)
-    {
-        JsonDocument doc = JsonDocument.Parse(raw);
-        if (doc.RootElement.ValueKind == JsonValueKind.Object
-            && doc.RootElement.TryGetProperty("content", out JsonElement content)
-            && content.ValueKind == JsonValueKind.Array)
-        {
-            foreach (JsonElement block in content.EnumerateArray())
-            {
-                if (block.TryGetProperty("text", out JsonElement t) && t.ValueKind == JsonValueKind.String)
-                {
-                    return JsonDocument.Parse(t.GetString()!).RootElement;
-                }
-            }
-        }
-        return doc.RootElement;
+        // The JSON property assertions auto-unwrap the MCP content envelope,
+        // so we don't have to care whether the harness flattened it for us.
+        Assert.That(close.Result, Json.HasProperty("closed", Is.False));
+        Assert.That(close.Result, Json.HasProperty("error", Is.EqualTo("slot_not_found")));
     }
 }

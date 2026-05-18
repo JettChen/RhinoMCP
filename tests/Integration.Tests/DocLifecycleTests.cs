@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -20,7 +18,7 @@ public sealed class DocLifecycleTests : SharedRouterFixture
     [TestCase("WIP")]
     public async Task close_doc_in_spawned_slot_returns_closed_message(string version)
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", new() { { "version", version } });
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", version)));
 
         string response = await _router.CallToolTextAsync("close_doc");
 

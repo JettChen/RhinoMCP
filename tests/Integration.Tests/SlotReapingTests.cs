@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -19,7 +18,7 @@ public sealed class SlotReapingTests : RouterFixture
     [Test]
     public async Task externally_killed_rhino_is_pruned_from_list_slots()
     {
-        string spawnJson = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
+        string spawnJson = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
         int pid = JsonAssert.Parse(spawnJson).GetProperty("pid").GetInt32();
 
         KillExternally(pid);
@@ -33,8 +32,7 @@ public sealed class SlotReapingTests : RouterFixture
         Assert.That(IsProcessAlive(pid), Is.False, "Test could not kill the spawned Rhino; reaping cannot be verified.");
 
         string listJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(JsonAssert.Parse(listJson).GetArrayLength(), Is.EqualTo(0),
-            "list_slots must prune a slot whose Rhino has died.");
+        Assert.That(listJson, Json.IsArrayOfLength(0));
     }
 
     [Test]
@@ -45,7 +43,7 @@ public sealed class SlotReapingTests : RouterFixture
         // waiting for the stale row. We don't pin the exact name (the pool's
         // ordering is implementation detail) — only that we can re-spawn and
         // list_slots returns one healthy row.
-        string spawnJson = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
+        string spawnJson = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
         int pid = JsonAssert.Parse(spawnJson).GetProperty("pid").GetInt32();
         string firstSlotId = JsonAssert.Parse(spawnJson).GetProperty("slotId").GetString()!;
 
@@ -55,15 +53,12 @@ public sealed class SlotReapingTests : RouterFixture
             await Task.Delay(100);
         }
 
-        string respawnJson = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
-        JsonElement respawn = JsonAssert.Parse(respawnJson);
-        Assert.That(respawn.TryGetProperty("error", out _), Is.False,
+        string respawnJson = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        Assert.That(JsonAssert.Parse(respawnJson).TryGetProperty("error", out _), Is.False,
             $"Respawn after reap should succeed. Payload: {respawnJson}");
 
         string listJson = await _router.CallToolTextAsync("list_slots");
-        List<JsonElement> slots = JsonAssert.Parse(listJson).EnumerateArray().ToList();
-        Assert.That(slots, Has.Count.EqualTo(1),
-            "After reap + respawn, exactly one slot should be visible.");
+        Assert.That(listJson, Json.IsArrayOfLength(1));
         // Pool ordering is implementation detail — reusing the freed name or
         // picking the next one in the pool are both acceptable. We deliberately
         // don't pin `firstSlotId` here; the count assertion above is the contract.

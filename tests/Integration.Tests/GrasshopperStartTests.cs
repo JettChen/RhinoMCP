@@ -1,5 +1,4 @@
 using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -16,19 +15,16 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     [Test]
     public async Task g2_start_in_rhino_8_produces_distinct_slot()
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
 
         string gh2Json = await _router.CallToolTextAsync("g2_start");
-        JsonElement gh2Root = JsonAssert.Parse(gh2Json);
-        Assert.That(gh2Root.ToString().Contains("Opened G2", StringComparison.OrdinalIgnoreCase));
+        Assert.That(gh2Json, Does.Contain("Opened G2").IgnoreCase);
 
         string slotJson = await _router.CallToolTextAsync("list_slots");
-        JsonElement element = JsonAssert.Parse(slotJson);
+        Assert.That(slotJson, Json.IsArrayOfLength(2));
 
-        List<JsonElement> slots = element.EnumerateArray().ToList();
-        Assert.That(slots, Has.Count.EqualTo(2));
-
-        foreach (string property in new string[] { "slotId", "port", "endpoint" })
+        List<JsonElement> slots = JsonAssert.Parse(slotJson).EnumerateArray().ToList();
+        foreach (string property in new[] { "slotId", "port", "endpoint" })
         {
             HashSet<string> set = slots.Select(j => j.GetProperty(property).ToString().ToLowerInvariant()).ToHashSet();
             Assert.That(set, Has.Count.EqualTo(2));
@@ -41,14 +37,10 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     public async Task g2_start_with_no_host_spawns_one_slot()
     {
         string gh2Json = await _router.CallToolTextAsync("g2_start");
-        JsonElement gh2Root = JsonAssert.Parse(gh2Json);
-        Assert.That(gh2Root.ToString().Contains("Opened G2", StringComparison.OrdinalIgnoreCase));
+        Assert.That(gh2Json, Does.Contain("Opened G2").IgnoreCase);
 
         string slotJson = await _router.CallToolTextAsync("list_slots");
-        JsonElement element = JsonAssert.Parse(slotJson);
-
-        List<JsonElement> slots = element.EnumerateArray().ToList();
-        Assert.That(slots, Has.Count.EqualTo(1));
+        Assert.That(slotJson, Json.IsArrayOfLength(1));
 
         // TODO : Assert that current slot is Rhino WIP
     }
@@ -57,10 +49,9 @@ public sealed class GrasshopperStartTests : SharedRouterFixture
     [TestCase("WIP")]
     public async Task g1_start_inside_rhino_opens_grasshopper(string version)
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", new() { { "version", version } });
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", version)));
 
         string gh1Json = await _router.CallToolTextAsync("g1_start");
-        JsonElement gh1Root = JsonAssert.Parse(gh1Json);
-        Assert.That(gh1Root.ToString().Contains("Opened Grasshopper", StringComparison.OrdinalIgnoreCase));
+        Assert.That(gh1Json, Does.Contain("Opened Grasshopper").IgnoreCase);
     }
 }

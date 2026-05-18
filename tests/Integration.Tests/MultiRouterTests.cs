@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -32,14 +30,12 @@ public sealed class MultiRouterTests : SharedRouterFixture
     [TestCase("WIP")]
     public async Task repeated_tool_calls_from_one_router_share_a_single_slot(string version)
     {
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", version } });
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", version } });
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", version } });
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
 
         string json = await _router.CallToolTextAsync("list_slots");
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.ValueKind, Is.EqualTo(JsonValueKind.Array));
-        Assert.That(root.GetArrayLength(), Is.EqualTo(1));
+        Assert.That(json, Json.IsArrayOfLength(1));
     }
 
     // TODO : Each isolated router currently shares an adopted slot via the
@@ -52,15 +48,13 @@ public sealed class MultiRouterTests : SharedRouterFixture
         _router2 = await RhinoMcpRouter.LaunchIsolatedAsync();
         _router3 = await RhinoMcpRouter.LaunchIsolatedAsync();
 
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", version } });
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", version)));
         // TODO : 2nd call locks up — investigate before re-enabling.
-        _ = await _router2.CallToolTextAsync("list_objects", new() { { "version", version } });
-        _ = await _router3.CallToolTextAsync("list_objects", new() { { "version", version } });
+        _ = await _router2.CallToolTextAsync("list_objects", Args.Of(("version", version)));
+        _ = await _router3.CallToolTextAsync("list_objects", Args.Of(("version", version)));
 
         string json = await _router.CallToolTextAsync("list_slots");
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.ValueKind, Is.EqualTo(JsonValueKind.Array));
-        Assert.That(root.GetArrayLength(), Is.EqualTo(1));
+        Assert.That(json, Json.IsArrayOfLength(1));
     }
 
     // Calling list_objects for two different versions in the same router
@@ -68,12 +62,10 @@ public sealed class MultiRouterTests : SharedRouterFixture
     [Test]
     public async Task list_objects_across_two_versions_produces_two_slots()
     {
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", "8" } });
-        _ = await _router.CallToolTextAsync("list_objects", new() { { "version", "WIP" } });
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", "8")));
+        _ = await _router.CallToolTextAsync("list_objects", Args.Of(("version", "WIP")));
 
         string json = await _router.CallToolTextAsync("list_slots");
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.ValueKind, Is.EqualTo(JsonValueKind.Array));
-        Assert.That(root.GetArrayLength(), Is.EqualTo(2));
+        Assert.That(json, Json.IsArrayOfLength(2));
     }
 }

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -20,13 +19,13 @@ public sealed class WindowsProcessIsolationTests : RouterFixture
     [Test]
     public async Task two_slots_same_version_have_distinct_pids_and_ports()
     {
-        _ = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
-        _ = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
 
         string json = await _router.CallToolTextAsync("list_slots");
-        List<JsonElement> slots = JsonAssert.Parse(json).EnumerateArray().ToList();
-        Assert.That(slots, Has.Count.EqualTo(2));
+        Assert.That(json, Json.IsArrayOfLength(2));
 
+        List<JsonElement> slots = JsonAssert.Parse(json).EnumerateArray().ToList();
         HashSet<int> pids = slots.Select(s => s.GetProperty("pid").GetInt32()).ToHashSet();
         HashSet<int> ports = slots.Select(s => s.GetProperty("port").GetInt32()).ToHashSet();
 
@@ -37,21 +36,20 @@ public sealed class WindowsProcessIsolationTests : RouterFixture
     [Test]
     public async Task closing_one_slot_does_not_kill_the_other()
     {
-        string spawnA = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
-        string spawnB = await _router.CallToolTextAsync("spawn_slot", new() { { "version", "8" } });
+        string spawnA = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
+        string spawnB = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "8")));
         string slotA = JsonAssert.Parse(spawnA).GetProperty("slotId").GetString()!;
         string slotB = JsonAssert.Parse(spawnB).GetProperty("slotId").GetString()!;
         int pidB = JsonAssert.Parse(spawnB).GetProperty("pid").GetInt32();
 
-        string closeJson = await _router.CallToolTextAsync(
-            "close_slot",
-            new Dictionary<string, object?> { ["slot"] = slotA });
-        Assert.That(JsonAssert.Parse(closeJson).GetProperty("closed").GetBoolean(), Is.True);
+        string closeJson = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", slotA)));
+        Assert.That(closeJson, Json.HasProperty("closed", Is.True));
 
         string listJson = await _router.CallToolTextAsync("list_slots");
-        List<JsonElement> slots = JsonAssert.Parse(listJson).EnumerateArray().ToList();
-        Assert.That(slots, Has.Count.EqualTo(1));
-        Assert.That(slots[0].GetProperty("slotId").GetString(), Is.EqualTo(slotB));
+        Assert.That(listJson, Json.IsArrayOfLength(1));
+
+        JsonElement remaining = JsonAssert.Parse(listJson)[0];
+        Assert.That(remaining, Json.HasProperty("slotId", Is.EqualTo(slotB)));
         Assert.That(IsProcessAlive(pidB), Is.True, "Sibling slot's Rhino must outlive close_slot on a peer.");
     }
 

@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -7,7 +5,7 @@ namespace RhMcp.Integration.Tests;
 // Exercises the router's close_slot tool directly. No Rhino install required —
 // these tests run against a freshly-spawned router with an isolated state dir.
 [TestFixture]
-public sealed class CloseSlotTests : SharedRouterFixture
+internal sealed class CloseSlotTests : SharedRouterFixture
 {
     // Regression: a status-agnostic existence check is required so launching
     // slots are not mistaken for missing slots. The structured shape
@@ -16,15 +14,12 @@ public sealed class CloseSlotTests : SharedRouterFixture
     [Test]
     public async Task close_slot_returns_slot_not_found_for_unknown_slot()
     {
-        string json = await _router.CallToolTextAsync(
-            "close_slot",
-            new Dictionary<string, object?> { ["slot"] = "does-not-exist" });
+        string json = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", "does-not-exist")));
 
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.GetProperty("closed").GetBoolean(), Is.False);
-        Assert.That(root.GetProperty("error").GetString(), Is.EqualTo("slot_not_found"));
-        Assert.That(root.GetProperty("message").GetString(), Does.Contain("does-not-exist"));
-        Assert.That(root.GetProperty("message").GetString(), Does.Contain("list_slots"));
+        Assert.That(json, Json.HasProperty("closed", Is.False));
+        Assert.That(json, Json.HasProperty("error", Is.EqualTo("slot_not_found")));
+        Assert.That(json, Json.HasProperty("message", Does.Contain("does-not-exist")));
+        Assert.That(json, Json.HasProperty("message", Does.Contain("list_slots")));
     }
 
     // The advertised JSON shape promises null fields are omitted; this also
@@ -36,7 +31,7 @@ public sealed class CloseSlotTests : SharedRouterFixture
         // No slot exists, so this still goes through the slot_not_found path,
         // but proves the negation: when error IS set, message is set too, and
         // neither is the literal string "null".
-        string json = await _router.CallToolTextAsync("close_slot", new () { ["slot"] = "another-bogus-slot" });
+        string json = await _router.CallToolTextAsync("close_slot", Args.Of(("slot", "another-bogus-slot")));
 
         Assert.That(json, Does.Not.Contain("\"error\":null"));
         Assert.That(json, Does.Not.Contain("\"message\":null"));

@@ -1,5 +1,3 @@
-using System.Text.Json;
-using NUnit.Framework;
 using RhMcp.Integration.Tests.Harness;
 
 namespace RhMcp.Integration.Tests;
@@ -9,41 +7,34 @@ namespace RhMcp.Integration.Tests;
 // any string the locator doesn't recognise, which the tool maps to a structured
 // `rhino_not_installed` payload before any process is launched.
 [TestFixture]
-public sealed class SpawnErrorTests : SharedRouterFixture
+internal sealed class SpawnErrorTests : SharedRouterFixture
 {
 
     [Test]
     public async Task spawn_with_unknown_version_returns_rhino_not_installed()
     {
-        string json = await _router.CallToolTextAsync(
-            "spawn_slot",
-            new Dictionary<string, object?> { ["version"] = "garbage" });
+        string json = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "garbage")));
 
-        JsonElement root = JsonAssert.Parse(json);
-        Assert.That(root.GetProperty("error").GetString(), Is.EqualTo("rhino_not_installed"));
-        Assert.That(root.GetProperty("message").GetString(), Does.Contain("garbage"));
+        Assert.That(json, Json.HasProperty("error", Is.EqualTo("rhino_not_installed")));
+        Assert.That(json, Json.HasProperty("message", Does.Contain("garbage")));
 
         // The launching placeholder must be cleaned up so the slot id is free
         // again — otherwise the next spawn waits 90s for the stale row.
         string listJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(JsonAssert.Parse(listJson).GetArrayLength(), Is.EqualTo(0));
+        Assert.That(listJson, Json.IsArrayOfLength(0));
     }
 
     [Test]
     public async Task failed_spawn_does_not_leave_launching_row_behind()
     {
-        _ = await _router.CallToolTextAsync(
-            "spawn_slot",
-            new Dictionary<string, object?> { ["version"] = "garbage" });
-        _ = await _router.CallToolTextAsync(
-            "spawn_slot",
-            new Dictionary<string, object?> { ["version"] = "garbage" });
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "garbage")));
+        _ = await _router.CallToolTextAsync("spawn_slot", Args.Of(("version", "garbage")));
 
         // Two failed spawns in a row must still not produce ready slots and
         // must not pile up placeholders. list_slots filters to Ready rows, so
         // a non-empty result here would mean adoption-as-ready (wrong) or
         // duplicate launching rows leaked through (also wrong).
         string listJson = await _router.CallToolTextAsync("list_slots");
-        Assert.That(JsonAssert.Parse(listJson).GetArrayLength(), Is.EqualTo(0));
+        Assert.That(listJson, Json.IsArrayOfLength(0));
     }
 }
