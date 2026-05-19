@@ -4,6 +4,12 @@ weight: 3
 prev: docs/getting-started
 next: docs/try-it-out
 toc: false
+author: Callum
+keywords:
+  - Claude Code
+  - Anthropic
+  - agents
+  - terminal
 ---
 
 [Claude Code](https://claude.com/claude-code) is Anthropic's

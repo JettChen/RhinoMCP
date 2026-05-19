@@ -2,6 +2,11 @@
 title: Examples
 linkTitle: Examples
 weight: 5
+author: Callum
+keywords:
+  - examples
+  - prompts
+  - walkthroughs
 ---
 
 Short walk-throughs that show what Rhino MCP can do. Each page starts with

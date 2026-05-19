@@ -1,6 +1,12 @@
 ---
 title: Inspect and report
 weight: 30
+author: Callum
+keywords:
+  - inspect
+  - audit
+  - layers
+  - document analysis
 ---
 
 Ask questions about an existing document and get a structured answer back.

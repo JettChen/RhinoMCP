@@ -1,6 +1,12 @@
 ---
 title: Automate the boring bits
 weight: 60
+author: Callum
+keywords:
+  - automation
+  - cleanup
+  - layers
+  - scripting
 ---
 
 One-shot chores. Cleanup, renaming, layer housekeeping: the kind

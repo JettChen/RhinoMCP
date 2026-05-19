@@ -2,6 +2,12 @@
 title: Upgrade to a newer Rhino
 linkTitle: Upgrade Rhino version
 weight: 2
+author: Callum
+keywords:
+  - Rhino upgrade
+  - plugin
+  - API migration
+  - Claude Code
 ---
 
 Moving a plugin from Rhino 7 → 8, or 8 → 9, is mostly a long tail of small

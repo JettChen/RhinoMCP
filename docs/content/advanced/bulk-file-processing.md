@@ -2,6 +2,12 @@
 title: Bulk file processing
 linkTitle: Bulk file processing
 weight: 5
+author: Callum
+keywords:
+  - bulk processing
+  - batch 3dm
+  - headless
+  - slots
 ---
 
 You've got a folder of `.3dm` files and a job to do on each of them:

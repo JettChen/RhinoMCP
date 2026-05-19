@@ -1,6 +1,12 @@
 ---
 title: Troubleshooting
 weight: 100
+author: Callum
+keywords:
+  - troubleshooting
+  - FAQ
+  - support
+  - connection
 ---
 
 The common gotchas, in plain language. If you don't find your problem

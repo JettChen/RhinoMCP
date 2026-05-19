@@ -1,6 +1,12 @@
 ---
 title: Rhino MCP Platform
 toc: false
+author: Callum
+keywords:
+  - Rhino MCP
+  - AI assistant
+  - Grasshopper
+  - McNeel
 ---
 
 <p style="text-align: center; font-size: 1.125rem; margin: 0 0 2.5rem; opacity: 0.8;">Talk to Rhino in plain language.</p>

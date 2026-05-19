@@ -1,6 +1,12 @@
 ---
 title: Build Grasshopper definitions
 weight: 40
+author: Callum
+keywords:
+  - Grasshopper
+  - definition
+  - components
+  - prompt example
 ---
 
 Get the assistant to wire up a Grasshopper definition for you:

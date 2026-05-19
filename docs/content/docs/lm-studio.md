@@ -4,6 +4,12 @@ weight: 5
 prev: docs/getting-started
 next: docs/try-it-out
 toc: false
+author: Callum
+keywords:
+  - LM Studio
+  - local LLM
+  - open-weight
+  - self-hosted
 ---
 
 // TODO : Suggest https://lmstudio.ai/models/qwen3

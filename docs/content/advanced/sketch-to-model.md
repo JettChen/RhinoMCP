@@ -2,6 +2,12 @@
 title: Sketch to model
 linkTitle: Sketch to model
 weight: 4
+author: Callum
+keywords:
+  - sketch to model
+  - image to geometry
+  - parametric
+  - Grasshopper
 ---
 
 If you've got a hand sketch (a napkin drawing, a whiteboard

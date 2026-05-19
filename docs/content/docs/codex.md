@@ -4,6 +4,12 @@ weight: 4
 prev: docs/getting-started
 next: docs/try-it-out
 toc: false
+author: Callum
+keywords:
+  - Codex
+  - OpenAI
+  - terminal
+  - CLI
 ---
 
 [Codex](https://github.com/openai/codex) is OpenAI's terminal-based AI

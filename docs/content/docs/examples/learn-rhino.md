@@ -1,6 +1,11 @@
 ---
 title: Learn Rhino
 weight: 50
+author: Callum
+keywords:
+  - learn Rhino
+  - tutorial
+  - AI tutor
 ---
 
 Use the assistant as a tutor that already knows what's in your document.

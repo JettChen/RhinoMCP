@@ -2,6 +2,12 @@
 title: Upgrade a plugin to .NET Core
 linkTitle: Upgrade to .NET Core
 weight: 1
+author: Callum
+keywords:
+  - .NET Core
+  - plugin upgrade
+  - net48
+  - Claude Code
 ---
 
 If you have a Rhino plugin still targeting `net48`, you'll want to move it

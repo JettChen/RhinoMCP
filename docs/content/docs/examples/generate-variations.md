@@ -1,6 +1,12 @@
 ---
 title: Generate variations
 weight: 20
+author: Callum
+keywords:
+  - variations
+  - parametric sweep
+  - randomise
+  - grid
 ---
 
 Sweep across parameters (size, position, colour, count) without

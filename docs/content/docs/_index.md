@@ -3,6 +3,12 @@ title: Documentation
 linkTitle: Docs
 next: docs/getting-started
 weight: 1
+author: Callum
+keywords:
+  - Rhino MCP
+  - documentation
+  - getting started
+  - AI assistant
 ---
 
 Welcome. These docs are aimed at people **using** Rhino MCP, whether

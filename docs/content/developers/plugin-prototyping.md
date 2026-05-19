@@ -2,6 +2,12 @@
 title: Plugin prototyping
 linkTitle: Plugin prototyping
 weight: 4
+author: Callum
+keywords:
+  - plugin prototyping
+  - scaffolding
+  - Claude Code
+  - rapid prototyping
 ---
 
 If you've ever wanted to try a plugin idea but couldn't be bothered to

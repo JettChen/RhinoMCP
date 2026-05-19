@@ -2,6 +2,12 @@
 title: Headless render farm
 linkTitle: Headless render farm
 weight: 2
+author: Callum
+keywords:
+  - headless
+  - render farm
+  - slots
+  - viewport capture
 ---
 
 If you have a model you need to capture from many angles (a study

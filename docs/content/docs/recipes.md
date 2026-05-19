@@ -1,6 +1,12 @@
 ---
 title: Recipes
 weight: 10
+author: Callum
+keywords:
+  - recipes
+  - prompts
+  - examples
+  - AI assistant
 ---
 
 A growing library of prompts you can copy straight into your AI assistant.

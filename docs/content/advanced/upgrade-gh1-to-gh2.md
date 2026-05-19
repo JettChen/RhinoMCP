@@ -2,6 +2,12 @@
 title: Upgrade a GH1 script to GH2
 linkTitle: Upgrade GH1 to GH2
 weight: 1
+author: Callum
+keywords:
+  - Grasshopper
+  - GH1 to GH2
+  - .gh definition
+  - upgrade
 ---
 
 Rhino 9 ships Grasshopper 2 alongside Grasshopper 1. If you have a GH1

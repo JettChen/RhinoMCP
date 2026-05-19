@@ -2,6 +2,12 @@
 title: Convert a WPF UI to Eto
 linkTitle: WPF to Eto
 weight: 5
+author: Callum
+keywords:
+  - WPF
+  - Eto.Forms
+  - cross-platform UI
+  - Mac
 ---
 
 If your Rhino plugin's UI is built on WPF, it only runs on Windows. Porting

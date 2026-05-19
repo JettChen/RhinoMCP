@@ -2,6 +2,12 @@
 title: Upgrade Grasshopper components to GH2
 linkTitle: Upgrade GH1 to GH2
 weight: 3
+author: Callum
+keywords:
+  - Grasshopper
+  - GH1 to GH2
+  - plugin components
+  - upgrade
 ---
 
 ![Voxelizer GH1 component and its GH2 equivalent solving side by side](/developer/voxelizer-gh2-conversion.png)

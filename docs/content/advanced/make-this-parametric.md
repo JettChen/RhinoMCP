@@ -2,6 +2,12 @@
 title: Make this parametric
 linkTitle: Make this parametric
 weight: 3
+author: Callum
+keywords:
+  - parametric
+  - Grasshopper
+  - reverse engineer
+  - GH2
 ---
 
 You've modelled something by hand (a stair, a panelised facade, a

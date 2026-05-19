@@ -3,6 +3,12 @@ title: Try it out
 weight: 5
 prev: docs/getting-started
 next: docs/recipes
+author: Callum
+keywords:
+  - first prompt
+  - demo
+  - smoke test
+  - getting started
 ---
 
 Once your assistant is wired up to Rhino, this is the quickest way to

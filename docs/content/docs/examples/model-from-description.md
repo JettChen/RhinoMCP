@@ -1,6 +1,11 @@
 ---
 title: Model from a description
 weight: 10
+author: Callum
+keywords:
+  - modelling
+  - parametric
+  - prompt example
 ---
 
 Describe what you want and let the assistant build it. Good for first

@@ -2,6 +2,12 @@
 title: Make a Windows-only plugin cross-platform
 linkTitle: Windows to cross-platform
 weight: 4
+author: Callum
+keywords:
+  - cross-platform
+  - Mac
+  - P/Invoke
+  - plugin port
 ---
 
 If your Rhino plugin currently only runs on Windows, getting it onto Mac

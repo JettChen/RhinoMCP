@@ -4,6 +4,12 @@ weight: 2
 prev: docs/getting-started
 next: docs/try-it-out
 toc: false
+author: Callum
+keywords:
+  - Claude Desktop
+  - connector
+  - Anthropic
+  - setup
 ---
 
 [Claude Desktop](https://claude.ai/download) is Anthropic's friendly chat

@@ -2,6 +2,12 @@
 title: Developers
 linkTitle: Developers
 weight: 2
+author: Callum
+keywords:
+  - developers
+  - plugin development
+  - Claude Code
+  - AI assistant
 ---
 
 These pages are about incorporating the Rhino MCP and an AI assistant, like Claude Code into your development cycle for rapid development.

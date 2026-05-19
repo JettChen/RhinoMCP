@@ -3,6 +3,12 @@ title: Getting Started
 weight: 1
 next: docs/connector
 toc: false
+author: Callum
+keywords:
+  - getting started
+  - installation
+  - setup
+  - AI assistant
 ---
 
 > This guide assumes you have [Rhino3d](https://www.rhino3d.com/download/) already installed and licensed.

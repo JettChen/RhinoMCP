@@ -1,6 +1,12 @@
 ---
 title: Advanced
 linkTitle: Advanced
+author: Callum
+keywords:
+  - Rhino MCP
+  - advanced
+  - power user
+  - workflows
 ---
 
 For users who already know Rhino and Grasshopper and want to get more
