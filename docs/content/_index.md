@@ -9,7 +9,7 @@ keywords:
   - McNeel
 ---
 
-<p style="text-align: center; font-size: 1.125rem; margin: 0 0 2.5rem; opacity: 0.8;">Talk to Rhino in plain language.</p>
+<p style="text-align: center; font-size: 1.25rem; margin: 0 0 2.5rem; opacity: 0.8; font-family: 'Lato', sans-serif; font-weight: 400; font-style: italic;">Talk to Rhino &amp; Grasshopper in plain language</p>
 
 <style>
   .rh-logo-dark { display: none; }
@@ -23,15 +23,15 @@ keywords:
 </h1>
 
 
-## What is it?
+## {{< icon "sparkles" >}} What is the Rhino MCP Platform?
 
-The Rhino MCP Platform is a free MCP from McNeel that connects Rhino to AI assistants like **Claude**, **CoPilot** and **Codex**. Once it's installed, your assistant can see what's in your document, create geometry, run commands, scripts build Grasshopper definitions.
+The Rhino MCP Platform is a free MCP from McNeel, the makers of Rhino & Grasshopper, that connects our software to AI assistants like {{< icon "claude" >}} **Claude**, {{< icon "copilot" >}} **Copilot** and {{< icon "codex" >}} **Codex**. Once Rhino MCP is installed, your assistant can see what's in your Rhino & Grasshopper files, create geometry, run commands, write & edit scripts, and build Grasshopper definitions.
 
 <div style="display: flex; justify-content: center; margin: 2rem 0 3rem;">
-{{< hextra/hero-button text="Get started" link="docs/getting-started" >}}
+{{< hextra/hero-button text="Get Started!" link="docs/getting-started" >}}
 </div>
 
-## What kind of user are you?
+## {{< icon "user-group" >}} What kind of designer are you?
 
 {{< cards >}}
 
@@ -39,14 +39,14 @@ The Rhino MCP Platform is a free MCP from McNeel that connects Rhino to AI assis
 
   {{< card link="docs/recipes" title="Just give me prompts to try" subtitle="A growing library of things you can ask, grouped by what you want to do." >}}
 
-  {{< card link="advanced" title="I know what I'm doing" subtitle="I know Rhino & GH, show me how to supercharge" >}}
+  {{< card link="advanced" title="I know what I'm doing" subtitle="I know Rhino & Grasshopper. Show me how to supercharge them!" >}}
 
   {{< card link="developers" title="I'm a Rhino developer" subtitle="How the RhinoMCP can assist you in plugin development" >}}
 
 {{< /cards >}}
 
 
-## What can I do with it?
+## What can I do with Rhino MCP?
 
 {{< cards >}}
 

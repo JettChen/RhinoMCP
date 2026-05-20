@@ -5,6 +5,19 @@
   margin-top: 0 !important;
 }
 
+/* Body copy — Roboto. Font loaded in layouts/partials/custom/head-end.html. */
+:root {
+  --hx-font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* Navbar project title — Lato Black. Font is loaded in
+   layouts/partials/custom/head-end.html. */
+.hextra-nav-container > nav > a > span.hx\:font-extrabold {
+  font-family: "Lato", sans-serif !important;
+  font-weight: 900 !important;
+}
+
 /* AI prompt component — replaces blockquote-style prompts with a labelled
    block, sparkle icon, and copy-to-clipboard button. */
 .ai-prompt {
