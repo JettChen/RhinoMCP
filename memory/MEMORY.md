@@ -1,3 +1,0 @@
-- [Docs site typography conventions](feedback_docs_typography.md) — Lato Black H1, Lato Bold H2–H6, Roboto body, applied site-wide across the Hugo docs
-- [User identity and byline](user_identity.md) — User is Steve Fuchs (SteveF); distinguish from Steve Baer who goes by "Steve"
-- [Add editor byline to edited docs pages](feedback_docs_editor_byline.md) — When editing a docs page authored by someone else, add editor: SteveF under author:
