@@ -37,6 +37,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: false
+          lfs: true  # PNGs are Git LFS objects; without this they deploy as pointer files
           fetch-depth: 0  # enableGitInfo needs full history
 
       - name: Setup Go
