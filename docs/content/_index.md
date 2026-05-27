@@ -73,8 +73,6 @@ The **Rhino MCP Platform** is a free MCP from McNeel, the makers of Rhino & Gras
 
   {{< card link="docs/try-it-out/examples/build-grasshopper" title="Build Grasshopper definitions" subtitle="\"Make a Grasshopper definition that lofts a curve through these points.\"" >}}
 
-  {{< card link="docs/try-it-out/examples/learn-rhino" title="Learn Rhino" subtitle="\"How do I make a fillet between these two surfaces? Walk me through it.\"" >}}
-
   {{< card link="docs/try-it-out/examples/automate" title="Automate the boring bits" subtitle="\"Rename every layer to title case and delete the empty ones.\"" >}}
 
 {{< /cards >}}
