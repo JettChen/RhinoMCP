@@ -93,17 +93,20 @@
       "dependsOn": "build release (R8)",
       "args": ["build"],
       "windows": {
-        "command": "C:/Program Files/Rhino 8/System/Yak.exe"
+        "command": "C:/Program Files/Rhino 8/System/Yak.exe",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R8-win/Release"
+        }
       },
       "osx": {
-        "command": "/Applications/Rhino 8.app/Contents/Resources/bin/yak"
+        "command": "/Applications/Rhino 8.app/Contents/Resources/bin/yak",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R8-osx/Release"
+        }
       },
       "linux": {
         "command": "echo",
         "args": ["Yak build on Linux is unsupported."]
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/rhino/plugin/bin/R8/Release"
       },
       "problemMatcher": [],
       "presentation": {
@@ -118,17 +121,20 @@
       "dependsOn": "build release (R9)",
       "args": ["build"],
       "windows": {
-        "command": "C:/Program Files/Rhino 8/System/Yak.exe"
+        "command": "C:/Program Files/Rhino 8/System/Yak.exe",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R9-win/Release"
+        }
       },
       "osx": {
-        "command": "/Applications/Rhino 8.app/Contents/Resources/bin/yak"
+        "command": "/Applications/Rhino 8.app/Contents/Resources/bin/yak",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R9-osx/Release"
+        }
       },
       "linux": {
         "command": "echo",
         "args": ["Yak build on Linux is unsupported."]
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/rhino/plugin/bin/R9/Release"
       },
       "problemMatcher": [],
       "presentation": {
@@ -142,18 +148,21 @@
       "type": "shell",
       "dependsOn": "pack yak (R8)",
       "windows": {
-        "command": "Get-ChildItem *.yak | ForEach-Object { & 'C:/Program Files/Rhino 8/System/Yak.exe' install $_.Name }"
+        "command": "Get-ChildItem *.yak | ForEach-Object { & 'C:/Program Files/Rhino 8/System/Yak.exe' install $_.Name }",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R8-win/Release"
+        }
       },
       "osx": {
         "command": "/Applications/Rhino 8.app/Contents/Resources/bin/yak",
-        "args": ["install", "*.yak"]
+        "args": ["install", "*.yak"],
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R8-osx/Release"
+        }
       },
       "linux": {
         "command": "echo",
         "args": ["Yak install on Linux is unsupported."]
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/rhino/plugin/bin/R8/Release"
       },
       "problemMatcher": [],
       "presentation": {
@@ -167,18 +176,21 @@
       "type": "shell",
       "dependsOn": "pack yak (R9)",
       "windows": {
-        "command": "Get-ChildItem *.yak | ForEach-Object { & 'C:/Program Files/Rhino 9 WIP/System/Yak.exe' install $_.Name }"
+        "command": "Get-ChildItem *.yak | ForEach-Object { & 'C:/Program Files/Rhino 9 WIP/System/Yak.exe' install $_.Name }",
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R9-win/Release"
+        }
       },
       "osx": {
         "command": "/Applications/RhinoWIP.app/Contents/Resources/bin/yak",
-        "args": ["install", "*.yak"]
+        "args": ["install", "*.yak"],
+        "options": {
+          "cwd": "${workspaceFolder}/rhino/plugin/bin/R9-osx/Release"
+        }
       },
       "linux": {
         "command": "echo",
         "args": ["Yak install on Linux is unsupported."]
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/rhino/plugin/bin/R9/Release"
       },
       "problemMatcher": [],
       "presentation": {
@@ -246,13 +258,13 @@
       "label": "register router with claude",
       "type": "shell",
       "osx": {
-        "command": "claude mcp remove rhino-mcp-router-dev 2>/dev/null; claude mcp add rhino-mcp-router-dev '${workspaceFolder}/rhino/router/bin/Debug/net8.0/rhino-mcp-router' -- --default-version WIP"
+        "command": "claude mcp remove rhino-mcp-router-dev 2>/dev/null; claude mcp add rhino-mcp-router-dev '${workspaceFolder}/rhino/router/bin/R9/Debug/net8.0/rhino-mcp-router' -- --default-version WIP"
       },
       "linux": {
-        "command": "claude mcp remove rhino-mcp-router-dev 2>/dev/null; claude mcp add rhino-mcp-router-dev '${workspaceFolder}/rhino/router/bin/Debug/net8.0/rhino-mcp-router' -- --default-version WIP"
+        "command": "claude mcp remove rhino-mcp-router-dev 2>/dev/null; claude mcp add rhino-mcp-router-dev '${workspaceFolder}/rhino/router/bin/R9/Debug/net8.0/rhino-mcp-router' -- --default-version WIP"
       },
       "windows": {
-        "command": "claude mcp remove rhino-mcp-router-dev 2>$null; claude mcp add rhino-mcp-router-dev \"${workspaceFolder}/rhino/router/bin/Debug/net8.0/rhino-mcp-router.exe\" -- --default-version WIP"
+        "command": "claude mcp remove rhino-mcp-router-dev 2>$null; claude mcp add rhino-mcp-router-dev \"${workspaceFolder}/rhino/router/bin/R9/Debug/net8.0/rhino-mcp-router.exe\" -- --default-version WIP"
       },
       "problemMatcher": [],
       "presentation": {
