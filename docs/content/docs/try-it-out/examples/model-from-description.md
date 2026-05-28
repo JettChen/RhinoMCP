@@ -1,5 +1,5 @@
 ---
-title: Model from a description
+title: Model from an image
 weight: 10
 prev: docs/try-it-out/examples
 author: Callum
@@ -10,19 +10,21 @@ keywords:
   - prompt example
 ---
 
-Describe what you want and let the assistant build it. Good for first drafts, study models, and anything where the spec is in your head.
+![Kettle](/examples/kettle.jpg)
+
+Paste this image into your AI Agent and ask it to model it.
 
 ## Try this prompt
 
 {{< prompt >}}
-Make a park bench, 1.6m long, with five wooden slats. Cast-iron
-legs at each end. Put it on a layer called `Furniture` and apply
-appropriate materials.
+Model this image in Rhino
 {{< /prompt >}}
 
 ## What you should see
 
-The assistant will create the slats, legs, and supports in your active Rhino window, place them on the right layer, and assign materials. Tweak by asking follow-ups: "make the slats 30mm thicker", "splay the legs outward".
+The assistant will create the kettle, likely it won't be exact but it will be the general gist of the photo.
+
+![AI Kettle](/examples/ai-kettle.png)
 
 ## More like this
 

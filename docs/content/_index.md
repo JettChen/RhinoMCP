@@ -53,7 +53,7 @@ The **Rhino MCP Platform** is a free MCP from McNeel, the makers of Rhino & Gras
 
   {{< card link="docs/getting-started" title="I'm new. Show me how :)" subtitle="GETTING STARTED: Install the plugin, pick an AI assistant, and try your first prompt" >}}
 
-  {{< card link="docs/try-it-out/recipes" title="Just give me prompts to try..." subtitle="RECIPES: A growing library of prompts you can use, grouped by what you want to do" >}}
+  {{< card link="docs/try-it-out/examples" title="Just give me prompts to try..." subtitle="EXAMPLES: A growing library of prompts you can use, grouped by what you want to do" >}}
 
   {{< card link="docs/advanced" title="I know what I'm doing!" subtitle="ADVANCED: I know Rhino & Grasshopper. Show me how to supercharge them!" >}}
 
