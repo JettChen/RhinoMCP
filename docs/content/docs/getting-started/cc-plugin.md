@@ -14,14 +14,25 @@ keywords:
   - terminal
 ---
 
-[Claude Code](https://claude.com/claude-code) is Anthropic's terminal-based AI assistant. The Rhino Claude Code plugin ships ready-made agents for modeling, drafting, Grasshopper, and more.
+[Claude Code](https://claude.com/claude-code) is Anthropic's terminal-based AI assistant. Claude Code is a great fit if you're comfortable in a terminal or already use it for code. If you're not sure, start with [Claude Desktop](../connector), it's much more friendly.
 
-Claude Code is a great fit if you're comfortable in a terminal or already use it for code. If you're not sure, start with [Claude Desktop](../connector). It's much more friendly.
+## 1. Install Claude Code
 
-## Before you start
+[Claude Code](https://claude.com/claude-code)
 
-1. The **Rhino-MCP-Platform** plugin is installed in Rhino. See [Getting Started](../) if you haven't done that yet.
-2. **Claude Code** is installed and signed in. See the [Claude Code install guide](https://docs.claude.com/claude-code/quickstart) if you need it.
+## 2. Install the Rhino MCP Platform
+
+1. Open Rhino 8 (and/or Rhino 9 WIP)
+2. Run the `PackageManager` command
+3. Search for, and install Rhino-MCP-Platform
+
+## 3. Connect the two
+
+1. Run the `MCPConnect` command
+2. Copy and Paste the prompt into a new Claude Code session
+3. Restart Claude Code if prompted to
+
+<!--
 
 ## Install the plugin
 
@@ -63,9 +74,15 @@ Each agent is tuned for a different kind of work. You can call them explicitly (
 | `grasshopper-reviewer` | Auditing a definition for issues or simplifications. |
 | `grasshopper-teacher` | Explaining Grasshopper concepts. |
 
+-->
+
 ## Try it out
 
-Start a Claude Code session and follow the prompts on the [Try it out](../../try-it-out) page.
+<blockquote class="page-note">
+Open Claude Desktop, start a new chat, and follow the prompts on the <a href="../../try-it-out">Try It Out</a> page.
+</blockquote>
+
+<!--
 
 ## Try the agents
 
@@ -91,3 +108,4 @@ You should see the bench appear in your Rhino window.
 - **Agents are colleagues, not commands.** "Hand this off to the Grasshopper scripter" works better than trying to direct every step.
 - **Multiple Rhinos.** Use `/rhino-mcp:launch-rhinos` to spin up several windows and have different agents work in each.
 
+-->
