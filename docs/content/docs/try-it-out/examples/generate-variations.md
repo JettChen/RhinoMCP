@@ -3,6 +3,7 @@ title: Generate variations
 weight: 20
 author: Callum
 editor: SteveF
+draft: true
 keywords:
   - variations
   - parametric sweep
@@ -22,9 +23,3 @@ and color them by height (short = pale, tall = dark).
 ## What you should see
 
 A 30-column grid materialises in the viewport. Each column is the right height and tinted to match. Ask follow-ups to refine: "space them 1.5m apart", "use a 5&times;6 grid", "weight the heights toward the center".
-
-## More like this
-
-<blockquote class="page-note">
-See the <a href="../../recipes#modeling">Modeling</a> section of the recipes for more variation prompts.
-</blockquote>

@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "rhino-mcp-platform",
   "display_name": "Rhino MCP Platform",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Desktop Connector for Rhino3d and Grasshopper",
   "long_description": "An MCP bridge between Rhino3D, Grasshopper and Claude. You can use it as a modelling, scripting or plugin development assistant.\n\nRequires the Rhino-MCP-Platform plugin, installable from Rhino's PackageManager.",
   "author": {
@@ -21,6 +21,9 @@
   ],
   "screenshots": [
     "screenshots/casa-rhino.png"
+  ],
+  "privacy_policies": [
+    "https://github.com/mcneel/RhinoMCP/blob/main/PRIVACY.md"
   ],
   "server": {
     "type": "node",
