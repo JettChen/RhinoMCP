@@ -24,9 +24,6 @@ public class MCPSpawnCommand : Command
             return Result.Failure;
         }
 
-        // Obfuscate the MCPSpawn command a little.
-        RhinoApp.ClearCommandHistoryWindow();
-
         try
         {
             return RhinoMcpHost.StartOrRestart(doc, port) ? Result.Success : Result.Failure;
