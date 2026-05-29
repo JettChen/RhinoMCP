@@ -2,8 +2,8 @@
 // Locate the rhino-mcp-router binary inside an installed Rhino-MCP-Platform yak
 // and spawn it with our stdio passed through. Yak layout:
 //   <packages>/<rhino-ver>/Rhino-MCP-Platform/<pkg-ver>/router/<rid>/rhino-mcp-router[.exe]
-// Canonical copy lives here in shared/; cc-plugin/ and connector/ each contain
-// a symlink to this file so both packaging paths share one source.
+// Canonical copy lives here in shared/; the packaging paths each stage their own
+// copy of this file at build time.
 
 import { statSync, readdirSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
@@ -90,12 +90,7 @@ if (r.considered.length === 0) {
   const summary = r.considered.map(c => `${c.ver}/${c.pkgver}${c === r.picked ? "*" : ""}`).join(", ");
   process.stderr.write(`rhino-mcp-launcher: candidates [${summary}] (* = picked)\n`);
   process.stderr.write(`rhino-mcp-launcher: exec ${r.picked.path}\n`);
-  // stdin/stdout via explicit pipes (not "inherit") because Claude Desktop's
-  // bundled Node spawns this launcher over a node-pty, and re-inheriting that
-  // PTY endpoint into a child process leaves the child's stdio half-detached:
-  // the child never receives the init bytes and its own stderr doesn't make
-  // it back to Claude's log. Pumping bytes through node-owned pipes sidesteps
-  // both. stderr stays inherited so router diagnostic logs still surface.
+  
   try {
     child = spawn(r.picked.path, process.argv.slice(2), {
       stdio: ["pipe", "pipe", "inherit"],
