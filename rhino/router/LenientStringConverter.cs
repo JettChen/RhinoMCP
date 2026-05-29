@@ -24,6 +24,13 @@ internal sealed class LenientStringConverter : JsonConverter<string>
     public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
         => writer.WriteStringValue(value);
 
+    // Keys are always real JSON property-name strings — the scalar-coercion leniency should only apply to values.
+    public override string ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.GetString()!;
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+        => writer.WritePropertyName(value);
+
     // Raw bytes reproduce the number literal exactly — no float round-tripping.
     private static string RawScalar(ref Utf8JsonReader reader)
         => reader.HasValueSequence
