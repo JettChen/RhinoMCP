@@ -12,6 +12,7 @@ namespace RhMcp.Router;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    
 // Router-specific types.
 [JsonSerializable(typeof(ChildRhino))]
 [JsonSerializable(typeof(IReadOnlyCollection<ChildRhino>))]
@@ -28,6 +29,8 @@ namespace RhMcp.Router;
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(JsonElement?))]
+[JsonSerializable(typeof(Dictionary<string, JsonElement>))]
+
 // Primitives used as tool param/return types. MCP's schema generation walks
 // these via our resolver, so they must each be declared explicitly when the
 // reflection fallback is disabled (e.g. under AOT or trim).

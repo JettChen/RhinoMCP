@@ -17,14 +17,18 @@ namespace RhMcp.Router.Codegen;
 // Parameter type rule: primitive types (string/bool/int/long/double/float and
 // their nullables/arrays) pass through unchanged. Anything else — including
 // Rhino-specific types like Vector3d and the plugin's record structs — maps to
-// System.Text.Json.JsonElement? so the router doesn't have to reference
-// RhinoCommon or duplicate types. The plugin deserialises on its end.
+// an "open object" Dictionary<string, JsonElement>? so the router doesn't have to
+// reference RhinoCommon or duplicate types. The plugin deserialises on its end.
 //
 // Plugin tools take RhinoDoc as their first parameter (auto-injected from DI in
 // the plugin's MCP server). That parameter is skipped in the proxy signature.
 [Generator]
 public class RouterToolGenerator : IIncrementalGenerator
 {
+    // Router-side CLR type for any non-passthrough (complex/object) tool parameter.
+    private const string OpenObjectType =
+        "global::System.Collections.Generic.Dictionary<string, global::System.Text.Json.JsonElement>?";
+
     private static readonly HashSet<string> PassThroughTypes = new()
     {
         "string", "string?",
@@ -137,7 +141,7 @@ public class RouterToolGenerator : IIncrementalGenerator
         var t = typeText.Replace(" ", "");
         return PassThroughTypes.Contains(t)
             ? t
-            : "global::System.Text.Json.JsonElement?";
+            : OpenObjectType;
     }
 
     private static void EmitProxy(StringBuilder sb, ToolInfo tool)
@@ -180,9 +184,17 @@ public class RouterToolGenerator : IIncrementalGenerator
         sb.AppendLine("        var args = new global::System.Text.Json.Nodes.JsonObject();");
         foreach (var p in tool.Parameters)
         {
-            if (p.Type == "global::System.Text.Json.JsonElement?")
+            if (p.Type == OpenObjectType)
             {
-                sb.AppendLine($"        if ({p.Name}.HasValue) args[\"{p.Name}\"] = global::System.Text.Json.Nodes.JsonNode.Parse({p.Name}.Value.GetRawText());");
+                // Open object → rebuild a JsonObject from the dictionary entries so the
+                // plugin receives a real JSON object (e.g. {"x":..,"y":..,"z":..}), not
+                // a stringified one. Each value round-trips through its raw JSON text.
+                sb.AppendLine($"        if ({p.Name} is not null)");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            var __obj_{p.Name} = new global::System.Text.Json.Nodes.JsonObject();");
+                sb.AppendLine($"            foreach (var __kv in {p.Name}) __obj_{p.Name}[__kv.Key] = global::System.Text.Json.Nodes.JsonNode.Parse(__kv.Value.GetRawText());");
+                sb.AppendLine($"            args[\"{p.Name}\"] = __obj_{p.Name};");
+                sb.AppendLine("        }");
             }
             else if (p.Type.Contains("[]"))
             {
