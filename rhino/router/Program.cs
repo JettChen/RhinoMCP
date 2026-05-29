@@ -30,6 +30,7 @@ builder.Services.AddHttpClient();
 // MCP layers its own context on top of whatever we pass in.
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 jsonOptions.TypeInfoResolverChain.Insert(0, RouterJsonContext.Default);
+jsonOptions.Converters.Add(new LenientStringConverter());
 
 var mcpBuilder = builder.Services
     .AddMcpServer(o =>

@@ -12,12 +12,12 @@ public class SpawnSlotTool(RhinoManager manager, RhinoCrashReportFinder crashFin
     [Description("Launch a new Rhino instance and return its slot ID. Pass that ID as the `slot` arg on subsequent tool calls to target this Rhino.")]
     public async Task<string> SpawnAsync(
         [Description("Rhino version: '8', '9', or 'WIP'. Omit to use the router's configured default.")]
-        JsonElement? version = null,
+        string? version = null,
         CancellationToken ct = default)
     {
         try
         {
-            ChildRhino child = await manager.SpawnAsync(NormalizeVersion(version), ct).ConfigureAwait(false);
+            ChildRhino child = await manager.SpawnAsync(version, ct).ConfigureAwait(false);
             JsonNode? payload = JsonSerializer.SerializeToNode(child, RouterJsonContext.Default.ChildRhino);
             return new ReturnResult(payload, Error: null, AutoSpawnedSlot: null).AsJson;
         }
@@ -74,18 +74,6 @@ public class SpawnSlotTool(RhinoManager manager, RhinoCrashReportFinder crashFin
             slots, RouterJsonContext.Default.IReadOnlyCollectionChildRhino);
         return new ReturnResult(payload, Error: null, AutoSpawnedSlot: null).AsJson;
     }
-
-    // Some clients send version "8"/"9" as a JSON number despite the string
-    // schema, which fails string binding before the body runs (bare "An error
-    // occurred invoking…"). Take the raw element and coerce number-or-string.
-    private static string? NormalizeVersion(JsonElement? version) => version switch
-    {
-        null => null,
-        { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined } => null,
-        { ValueKind: JsonValueKind.String } el => el.GetString(),
-        { ValueKind: JsonValueKind.Number } el => el.GetRawText(),
-        { } el => el.GetRawText(),
-    };
 
     // Map spawn-pipeline exception → ErrorInfo. Each message ends with the next action.
     private ErrorInfo Diagnose(Exception ex) => ex switch

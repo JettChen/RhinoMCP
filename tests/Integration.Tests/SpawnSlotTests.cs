@@ -20,8 +20,8 @@ internal sealed class SpawnSlotTests : RouterFixture
         Assert.That(result.Payload?.GetProperty("adopted").GetBoolean(), Is.False);
     }
 
-    // Regression: a version sent as a JSON number (not "8") must still bind and
-    // spawn. This used to fail with a bare "An error occurred invoking…".
+    // Regression: a version sent as a JSON number must coerce and spawn, not fail
+    // string binding with a bare invocation error.
     [Test]
     public async Task spawn_slot_accepts_numeric_version()
     {
