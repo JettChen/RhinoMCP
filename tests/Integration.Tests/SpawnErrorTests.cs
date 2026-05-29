@@ -24,6 +24,19 @@ internal sealed class SpawnErrorTests : SharedRouterFixture
         Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(0));
     }
 
+    // Regression: a numeric version used to fail string binding with a bare
+    // "An error occurred invoking 'spawn_slot'" (no envelope to parse). It must
+    // now reach the locator and return a normal rhino_not_installed.
+    [Test]
+    public async Task spawn_with_unknown_numeric_version_returns_rhino_not_installed()
+    {
+        // 42 is passed as a JSON number, not the string "42".
+        ReturnResult result = await _router.CallToolAsync("spawn_slot", Args.Of(("version", 42)));
+
+        Assert.That(result.Error?.Code, Is.EqualTo("rhino_not_installed"));
+        Assert.That(result.Error?.Message, Does.Contain("42"));
+    }
+
     [Test]
     public async Task failed_spawn_does_not_leave_launching_row_behind()
     {

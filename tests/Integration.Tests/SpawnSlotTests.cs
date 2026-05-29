@@ -20,6 +20,19 @@ internal sealed class SpawnSlotTests : RouterFixture
         Assert.That(result.Payload?.GetProperty("adopted").GetBoolean(), Is.False);
     }
 
+    // Regression: a version sent as a JSON number (not "8") must still bind and
+    // spawn. This used to fail with a bare "An error occurred invoking…".
+    [Test]
+    public async Task spawn_slot_accepts_numeric_version()
+    {
+        // 8 is passed as a JSON number, not the string "8".
+        ReturnResult result = await _router.CallToolAsync("spawn_slot", Args.Of(("version", 8)));
+
+        Assert.That(result.Error, Is.Null);
+        Assert.That(result.Payload?.GetProperty("slotId").GetString(), Is.Not.Empty);
+        Assert.That(result.Payload?.GetProperty("version").GetString(), Is.EqualTo("8"));
+    }
+
     [Test]
     public async Task spawn_three_slots_returns_distinct_metadata()
     {
