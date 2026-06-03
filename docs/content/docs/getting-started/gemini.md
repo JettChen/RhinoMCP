@@ -24,7 +24,7 @@ If you're choosing between assistants and aren't sure, start with [Claude Deskto
 
 ## Wire up the Rhino MCP server
 
-1. In Rhino, run the `RhinoMCPConnect` command. It prints the command Gemini CLI needs to launch the Rhino MCP router.
+1. In Rhino, run the `MCPConnect` command. It prints the command Gemini CLI needs to launch the Rhino MCP router.
 2. Open `~/.gemini/settings.json` (create it if it doesn't exist).
 3. Add an `mcpServers` entry for the Rhino server, pasting the command and args from step 1:
 

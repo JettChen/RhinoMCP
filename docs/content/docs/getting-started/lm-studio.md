@@ -32,7 +32,7 @@ Local open-weight models are not as capable as the paid hosted models (Claude, G
 
 ## Wire up the Rhino server
 
-1. In Rhino, run the `RhinoMCPConnect` command, choose the mcp.json tab. It gives the JSON needed for LM Studio to connect to the Rhino MCP.
+1. In Rhino, run the `MCPConnect` command, choose the mcp.json tab. It gives the JSON needed for LM Studio to connect to the Rhino MCP.
 2. In LM Studio, open the **Program** sidebar and click **Install &gt; Edit mcp.json** (or open `~/.lmstudio/mcp.json` directly).
 3. Add an entry for the Rhino server, pasting the mcp.json tab
 4. Save the file. LM Studio picks up the change without a restart; the `rhino` server should appear in the MCP tool list for any new chat.

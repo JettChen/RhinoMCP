@@ -25,7 +25,7 @@ If you're choosing between assistants and aren't sure, start with [Claude Deskto
 
 ## Wire up the Rhino server
 
-1. In Rhino, run the `RhinoMCPConnect` command. It prints the command Copilot needs to launch the Rhino MCP router.
+1. In Rhino, run the `MCPConnect` command. It prints the command Copilot needs to launch the Rhino MCP router.
 2. In your workspace, create `.vscode/mcp.json` (or edit your User `settings.json` if you want it available everywhere).
 3. Add an entry for the Rhino server, pasting the command and args from step 1:
 
