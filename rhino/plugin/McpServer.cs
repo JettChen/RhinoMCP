@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -94,17 +95,46 @@ internal sealed class McpServer : IDisposable
     {
         WebApplication? app = _app;
         _app = null;
-        try { _cts?.Cancel(); } catch { }
+        try
+        { _cts?.Cancel(); }
+        catch { }
         if (app is not null)
         {
             // Await graceful shutdown so we release the listening socket BEFORE
             // any attempted rebind on the same port.
-            try { app.StopAsync(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult(); } catch
+            try
             {
-                RhinoApp.WriteLine($"[Rhino MCP] Failed to stop MCP server gracefully. Recommend restarting Rhino.");
+                TaskAwaiter awaiter = app.StopAsync(TimeSpan.FromSeconds(3)).GetAwaiter();
+                
+                // No need to wait if Rhino is exiting
+                if (RhinoApp.IsExiting) return;
+
+                int interval = 50;
+                for (int i = 0; i < 3000; i += interval)
+                {
+                    Thread.Sleep(interval);
+                    try
+                    {
+                        // Use the disposed property in a call that the compiler won't optimise away
+                        Console.WriteLine($"{app.Environment}");
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // App was closed and disposed of
+                        // A bit messy, but it works
+                        return;
+                    }
+                }
             }
+            catch
+            {
+
+            }
+            RhinoApp.WriteLine($"[Rhino MCP] Failed to stop MCP server gracefully. Recommend restarting Rhino.");
         }
-        try { _cts?.Dispose(); } catch
+        try
+        { _cts?.Dispose(); }
+        catch
         {
             RhinoApp.WriteLine($"[Rhino MCP] Failed to dispose CancellationTokenSource");
         }
