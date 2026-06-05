@@ -346,11 +346,13 @@ public sealed class SlotStore : IDisposable
         }
     }
 
+    // Oldest-first (rowid breaks ties within the same started_at millisecond) so
+    // "use the first-created slot" resolution is deterministic.
     public IReadOnlyList<ChildRhino> ListReady()
     {
         lock (_connLock)
         {
-            return Query(null, "SELECT * FROM slots WHERE status='ready';");
+            return Query(null, "SELECT * FROM slots WHERE status='ready' ORDER BY started_at ASC, rowid ASC;");
         }
     }
 
@@ -358,7 +360,9 @@ public sealed class SlotStore : IDisposable
     {
         lock (_connLock)
         {
-            return Query(null, "SELECT * FROM slots WHERE router_pid=$r;", ("$r", routerPid));
+            return Query(null,
+                "SELECT * FROM slots WHERE router_pid=$r ORDER BY started_at ASC, rowid ASC;",
+                ("$r", routerPid));
         }
     }
 

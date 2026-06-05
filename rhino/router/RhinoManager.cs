@@ -34,6 +34,12 @@ public class RhinoManager(
 
     private readonly int _routerPid = Environment.ProcessId;
 
+    // The slot this session last used. In-memory is the right scope: the router
+    // process lives and dies with the MCP session.
+    private string? ActiveSlotId { get; set; }
+
+    public void SetActiveSlot(string slotId) => ActiveSlotId = slotId;
+
     public Task<ChildRhino> SpawnAsync(string? version = null, CancellationToken ct = default)
     {
         string resolved = version ?? config.DefaultVersion;
@@ -43,25 +49,53 @@ public class RhinoManager(
         return DispatchReservationAsync(resolved, slotId, reservation, ct);
     }
 
-    // Resolves the Rhino to serve a slot-less tool call. Prefers an adopted
-    // user-started Rhino (any router), else reuses a slot this router already
-    // owns, else spawns a fresh animal-named one. `WasNewlySpawned` lets the
-    // dispatcher tell the agent via ReturnResult.autoSpawnedSlot.
+    // Resolves the Rhino for a slot-less tool call, in priority order: the slot
+    // this session last used (sticky), else the oldest Rhino the user opened,
+    // else the oldest this router spawned, else spawn the configured default.
+    // `requiredVersion` is null for generic tools and "WIP" for GH2 tools, which
+    // restricts every reuse step to a compatible Rhino and spawns "WIP" if none.
     public async Task<(ChildRhino Child, bool WasNewlySpawned)> GetOrCreateDefaultAsync(
-        string? version = null, CancellationToken ct = default)
+        string? requiredVersion = null, CancellationToken ct = default)
     {
         ScanAnnouncements();
-        string resolved = version ?? config.DefaultVersion;
 
-        ChildRhino? adopted = store.ListReady()
-            .FirstOrDefault(c => c.Version == resolved && c.Adopted);
+        // A stale pointer (slot closed/crashed) self-heals: the liveness re-check
+        // drops it and we fall through to the rest of the ladder.
+        string? activeSlotId = ActiveSlotId;
+        if (activeSlotId is not null)
+        {
+            ChildRhino? active = store.Get(activeSlotId);
+            if (active is not null && active.Status == SlotStatus.Ready &&
+                (requiredVersion is null || VersionMatch.IsCompatible(active.Version, requiredVersion)))
+            {
+                return (active, false);
+            }
+        }
+
+        // Pinned: a user-opened WIP announces as "9", so match on compatibility.
+        if (requiredVersion is not null)
+        {
+            ChildRhino? adoptedMatch = store.ListReady()
+                .FirstOrDefault(c => c.Adopted && VersionMatch.IsCompatible(c.Version, requiredVersion));
+            if (adoptedMatch is not null) return (adoptedMatch, false);
+
+            ChildRhino? mineMatch = store.ListAllOwnedBy(_routerPid)
+                .FirstOrDefault(c => c.Status == SlotStatus.Ready && !c.Adopted &&
+                                     VersionMatch.IsCompatible(c.Version, requiredVersion));
+            if (mineMatch is not null) return (mineMatch, false);
+
+            ChildRhino spawnedPinned = await SpawnAsync(requiredVersion, ct).ConfigureAwait(false);
+            return (spawnedPinned, true);
+        }
+
+        ChildRhino? adopted = store.ListReady().FirstOrDefault(c => c.Adopted);
         if (adopted is not null) return (adopted, false);
 
         ChildRhino? mine = store.ListAllOwnedBy(_routerPid)
-            .FirstOrDefault(c => c.Status == SlotStatus.Ready && c.Version == resolved && !c.Adopted);
+            .FirstOrDefault(c => c.Status == SlotStatus.Ready && !c.Adopted);
         if (mine is not null) return (mine, false);
 
-        ChildRhino spawned = await SpawnAsync(resolved, ct).ConfigureAwait(false);
+        ChildRhino spawned = await SpawnAsync(config.DefaultVersion, ct).ConfigureAwait(false);
         return (spawned, true);
     }
 
