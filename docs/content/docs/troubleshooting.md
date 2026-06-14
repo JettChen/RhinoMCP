@@ -43,7 +43,7 @@ A few things to check:
 The router defaults to Rhino 8. To target Rhino 9:
 
 - **Claude Desktop:** Open the settings for the connector and change 8 to 9
-- **Claude Code / custom config:** Add `-v 9` to the `rhino-mcp-router` arguments in your MCP config.
+- **Claude Code / custom config:** Add `"args": ["-v", "9"]` to the `mcpServers` -> `rhino` key in `~/.claude.json`.
 
 ## Grasshopper tools aren't working
 
