@@ -38,7 +38,7 @@ If you're choosing between assistants and aren't sure, start with [Claude Deskto
 4. Restart Codex. The `rhino` server should appear when you list MCP servers from inside a session.
 
 > **Pick the Rhino version** by changing the `--default-version` arg.
-> Use `8` for Rhino 8, `9` for Rhino 9 WIP.
+> Use `8` for Rhino 8, `9` for Rhino 9 WIP/BETA.
 
 ## Try it out
 

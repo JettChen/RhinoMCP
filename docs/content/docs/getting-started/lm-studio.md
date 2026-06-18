@@ -38,7 +38,7 @@ Local open-weight models are not as capable as the paid hosted models (Claude, G
 4. Save the file. LM Studio picks up the change without a restart; the `rhino` server should appear in the MCP tool list for any new chat.
 
 > **Pick the Rhino version** by changing the `--default-version` arg.
-> Use `8` for Rhino 8, `9` for Rhino 9 WIP.
+> Use `8` for Rhino 8, `9` for Rhino 9 WIP/BETA.
 
 ## Try it out
 
