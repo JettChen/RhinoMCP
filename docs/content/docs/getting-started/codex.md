@@ -48,7 +48,7 @@ If that doesn't work you can try the below:
 4. Restart Codex. The `rhino` server should appear when you list MCP servers from inside a session.
 
 > **Pick the Rhino version** by changing the `--default-version` arg.
-> Use `8` for Rhino 8, `9` for Rhino 9 WIP.
+> Use `8` for Rhino 8, `9` for Rhino 9 WIP/BETA.
 
 ## Try it out
 

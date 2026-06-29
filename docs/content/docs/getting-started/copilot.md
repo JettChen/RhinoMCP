@@ -52,7 +52,7 @@ If that doesn't work you can try the below:
 4. Reload VS Code. In the Copilot Chat agent-mode tool picker, you should see the `rhino` server and its tools listed.
 
 > **Pick the Rhino version** by changing the `--default-version` arg.
-> Use `8` for Rhino 8, `9` for Rhino 9 WIP.
+> Use `8` for Rhino 8, `9` for Rhino 9 WIP/BETA.
 
 ## Try it out
 
