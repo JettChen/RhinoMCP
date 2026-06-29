@@ -20,7 +20,12 @@ keywords:
 
 [Claude Code](https://claude.com/claude-code)
 
-## 2. Install the Rhino MCP Platform
+## 2. Install the Rhino plugin
+
+{{< yak package="Rhino-MCP-Platform" version="8" >}}
+{{< yak package="Rhino-MCP-Platform" version="9" >}}
+
+If that doesn't work you can try the below:
 
 1. Open Rhino 8 (and/or Rhino 9 WIP/BETA)
 2. Run the `PackageManager` command
