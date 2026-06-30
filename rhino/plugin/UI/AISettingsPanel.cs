@@ -41,7 +41,7 @@ internal sealed class AISettingsPanel : Panel
 
     public AISettingsPanel()
     {
-        Padding = new Padding(8);
+        Padding = new Padding(20);
         Height = 600;
 
         SeedRows();
