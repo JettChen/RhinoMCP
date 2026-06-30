@@ -1,4 +1,4 @@
-module github.com/mcneel/ai/docs
+module github.com/mcneel/RhinoMCP/docs
 
 go 1.21
 
