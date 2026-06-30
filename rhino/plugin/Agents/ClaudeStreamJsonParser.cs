@@ -50,6 +50,9 @@ internal sealed class ClaudeStreamJsonParser : IStreamJsonParser
         psi.Environment["MCP_TOOL_TIMEOUT"] = "3600000";
         psi.Environment["MCP_TIMEOUT"] = "3600000";
 
+        // Force a Load every MCP tool into context up front
+        psi.Environment["ENABLE_TOOL_SEARCH"] = "false";
+
         psi.ArgumentList.Add("-p");
         psi.ArgumentList.Add("--input-format");
         psi.ArgumentList.Add("stream-json");
