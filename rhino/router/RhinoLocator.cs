@@ -30,9 +30,9 @@ public static class RhinoLocator
             ["WIP"] = new VersionInstall(Rhino9WindowsFolders, Rhino9MacBundles),
         };
 
-    public static string ResolveRhinoExe(string version)
+    public static string ResolveRhinoExe(string version, IReadOnlyDictionary<string, string>? overrides = null)
     {
-        if (TryResolve(version, out string path))
+        if (TryResolve(version, overrides, out string path))
             return path;
 
         throw new FileNotFoundException(
@@ -40,8 +40,39 @@ public static class RhinoLocator
             $"Installed versions found: {string.Join(", ", ListInstalledVersions())}");
     }
 
-    private static bool TryResolve(string version, out string path)
+    // True when a configured path override supplies the exe for this version. The
+    // manager uses this to force a new macOS instance: a debug build shares the
+    // release bundle id, so `open -a` alone would just activate a running release.
+    public static bool IsOverride(string version, IReadOnlyDictionary<string, string>? overrides) =>
+        TryOverride(version, overrides, out _);
+
+    // A configured path override (e.g. a from-source debug build) wins over the
+    // installed Rhino. The compat fallback means a `9=` override also serves a
+    // "WIP" spawn and vice versa (a Rhino 9 build is the WIP; GH2 tools pin "WIP").
+    // Value is a Rhino.exe (Windows) or a .app bundle dir (macOS).
+    private static bool TryOverride(string version, IReadOnlyDictionary<string, string>? overrides, out string path)
     {
+        path = string.Empty;
+        if (overrides is null)
+            return false;
+
+        foreach ((string key, string candidate) in overrides)
+        {
+            if (VersionMatch.IsCompatible(key, version) &&
+                (File.Exists(candidate) || Directory.Exists(candidate)))
+            {
+                path = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool TryResolve(string version, IReadOnlyDictionary<string, string>? overrides, out string path)
+    {
+        if (TryOverride(version, overrides, out path))
+            return true;
+
         path = string.Empty;
 
         if (!VersionMap.TryGetValue(version, out VersionInstall? install))
@@ -92,7 +123,7 @@ public static class RhinoLocator
     {
         foreach (string version in KnownVersionTokens)
         {
-            if (TryResolve(version, out _))
+            if (TryResolve(version, null, out _))
                 yield return version;
         }
     }
