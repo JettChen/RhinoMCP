@@ -43,7 +43,10 @@ public class RhinoManager(
 
     public Task<ChildRhino> SpawnAsync(string? version = null, CancellationToken ct = default)
     {
-        string resolved = version ?? config.DefaultVersion;
+        // No explicit version is a preference, not a requirement: prefer one that
+        // actually has the plugin. An explicit version is honoured as-is and fails
+        // in the leader path if its plugin is missing.
+        string resolved = version ?? ChooseDefaultVersion();
         store.ReapStaleLaunching(StaleLaunchingMaxAge);
         ReapAllDead();
         (SlotReservation reservation, string slotId) = store.ReserveNewNamed(resolved, _routerPid);
@@ -96,12 +99,12 @@ public class RhinoManager(
             .FirstOrDefault(c => c.Status == SlotStatus.Ready && !c.Adopted);
         if (mine is not null) return (mine, false);
 
-        ChildRhino spawned = await SpawnAsync(ChooseDefaultVersion(), ct).ConfigureAwait(false);
+        ChildRhino spawned = await SpawnAsync(null, ct).ConfigureAwait(false);
         return (spawned, true);
     }
 
-    // For a no-preference auto-spawn, prefer a version that actually has the plugin
-    // so we don't launch a Rhino that can never bind. If none does, fall back to the
+    // For a version-less spawn, prefer a version that actually has the plugin so we
+    // don't launch a Rhino that can never bind. If none does, fall back to the
     // configured default and let the leader path surface a plugin_not_installed error.
     // Compiled out of Debug, where the plugin loads from bin and can't be seen on disk.
     private string ChooseDefaultVersion()
@@ -109,9 +112,13 @@ public class RhinoManager(
 #if DEBUG
         return config.DefaultVersion;
 #else
-        return RhinoLocator.IsPluginInstalled(config.DefaultVersion)
+        // Launchable = installed exe AND plugin. IsPluginInstalled alone probes only
+        // the package folder, which can outlive the Rhino it belonged to, so the
+        // default would resolve to a version that then dies at ResolveRhinoExe.
+        IReadOnlyList<string> usable = RhinoLocator.ListVersionsWithPlugin();
+        return usable.Contains(config.DefaultVersion)
             ? config.DefaultVersion
-            : RhinoLocator.ListVersionsWithPlugin().FirstOrDefault() ?? config.DefaultVersion;
+            : usable.FirstOrDefault() ?? config.DefaultVersion;
 #endif
     }
 
