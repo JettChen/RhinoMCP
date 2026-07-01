@@ -18,9 +18,6 @@ public class RhinoLocatorTests
         Assert.That(RhinoLocator.KnownVersionTokens, Is.EquivalentTo(new[] { "8", "9", "WIP" }));
     }
 
-    // A version can only be "launchable with the plugin" if Rhino itself is there,
-    // so the plugin-filtered list is always a subset of the installed list. Pins the
-    // invariant without depending on what's actually installed on the test machine.
     [Test]
     public void Versions_with_plugin_are_a_subset_of_installed_versions()
     {

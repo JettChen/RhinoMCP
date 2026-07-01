@@ -1,10 +1,5 @@
 namespace RhMcp.Router;
 
-// Thrown when a fresh Rhino launch would start a version whose Yak package (the
-// MCP plugin) isn't installed: that Rhino comes up but never binds its port, so
-// we fail fast with an actionable message instead of eating the full startup
-// timeout. Detection is Yak-only and Release-only (see RhinoLocator.IsPluginInstalled);
-// dev builds load the plugin from bin and never hit this.
 public sealed class PluginNotInstalledException(string version, IReadOnlyList<string> versionsWithPlugin)
     : Exception(BuildMessage(version, versionsWithPlugin))
 {

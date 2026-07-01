@@ -43,9 +43,6 @@ public class RhinoManager(
 
     public Task<ChildRhino> SpawnAsync(string? version = null, CancellationToken ct = default)
     {
-        // No explicit version is a preference, not a requirement: prefer one that
-        // actually has the plugin. An explicit version is honoured as-is and fails
-        // in the leader path if its plugin is missing.
         string resolved = version ?? ChooseDefaultVersion();
         store.ReapStaleLaunching(StaleLaunchingMaxAge);
         ReapAllDead();
@@ -103,18 +100,11 @@ public class RhinoManager(
         return (spawned, true);
     }
 
-    // For a version-less spawn, prefer a version that actually has the plugin so we
-    // don't launch a Rhino that can never bind. If none does, fall back to the
-    // configured default and let the leader path surface a plugin_not_installed error.
-    // Compiled out of Debug, where the plugin loads from bin and can't be seen on disk.
     private string ChooseDefaultVersion()
     {
 #if DEBUG
         return config.DefaultVersion;
 #else
-        // Launchable = installed exe AND plugin. IsPluginInstalled alone probes only
-        // the package folder, which can outlive the Rhino it belonged to, so the
-        // default would resolve to a version that then dies at ResolveRhinoExe.
         IReadOnlyList<string> usable = RhinoLocator.ListVersionsWithPlugin();
         return usable.Contains(config.DefaultVersion)
             ? config.DefaultVersion
@@ -162,11 +152,6 @@ public class RhinoManager(
             string rhinoExe = RhinoLocator.ResolveRhinoExe(version);
 
 #if !DEBUG
-            // A Rhino without the plugin launches fine but never binds its port, so
-            // catch it here rather than eating the full startup timeout. Only the
-            // leader path starts a fresh process; followers reuse a Rhino that has
-            // the plugin by definition. Dev builds load the plugin from bin, so the
-            // Yak-folder probe would false-negative and this is compiled out.
             if (!RhinoLocator.IsPluginInstalled(version))
                 throw new PluginNotInstalledException(version, RhinoLocator.ListVersionsWithPlugin());
 #endif
