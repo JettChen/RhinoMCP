@@ -18,6 +18,13 @@ public class RhinoLocatorTests
         Assert.That(RhinoLocator.KnownVersionTokens, Is.EquivalentTo(new[] { "8", "9", "WIP" }));
     }
 
+    [Test]
+    public void Versions_with_plugin_are_a_subset_of_installed_versions()
+    {
+        Assert.That(RhinoLocator.ListVersionsWithPlugin(),
+            Is.SubsetOf(RhinoLocator.ListInstalledVersions()));
+    }
+
     // "9" and "WIP" are deliberate aliases for the current WIP install; the
     // documented "8" token is distinct. This pins the aliasing so a future
     // edit can't silently make "9" mean a non-WIP install on one platform only.

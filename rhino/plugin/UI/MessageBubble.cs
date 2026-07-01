@@ -106,10 +106,10 @@ internal sealed class MessageBubble : Drawable
         float clamped = Math.Min(radius, Math.Min(r.Width, r.Height) / 2f);
         float d = clamped * 2f;
         GraphicsPath path = new();
-        path.AddArc(r.X, r.Y, d, d, 180, 90);
-        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+        path.AddArc(r.X, r.Y, d, d, 180, 90);            // top-left
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);    // top-right
+        path.LineTo(r.Right, r.Bottom);                  // square bottom-right
+        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);    // bottom-left
         path.CloseFigure();
         return path;
     }
