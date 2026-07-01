@@ -12,13 +12,24 @@ internal static class RouterMcpConfig
     internal const string ServerName = "rhino";
 
     // The {"mcpServers":...} shape Claude Code, the connector json, and the test harness accept.
-    internal static string Json => JsonSerializer.Serialize(new
-    {
-        mcpServers = new Dictionary<string, object>
+    internal static string Json => BuildJson(null);
+
+    // Same shape, with an optional env block (the Connect dialog's Advanced tab).
+    // Empty/null env keeps the bare command-only entry.
+    internal static string BuildJson(IReadOnlyDictionary<string, string>? env) =>
+        JsonSerializer.Serialize(new
         {
-            [ServerName] = new { command = RouterPath },
-        },
-    }, IndentedOptions);
+            mcpServers = new Dictionary<string, object> { [ServerName] = Entry(env) },
+        }, IndentedOptions);
+
+    // Compact `"rhino": { ... }` fragment for the copy-paste prompt.
+    internal static string EntryFragment(IReadOnlyDictionary<string, string>? env) =>
+        $"\"{ServerName}\": {JsonSerializer.Serialize(Entry(env), CompactOptions)}";
+
+    private static object Entry(IReadOnlyDictionary<string, string>? env) =>
+        env is { Count: > 0 }
+            ? new { command = RouterPath, env }
+            : new { command = RouterPath };
 
     // Resolved next to the plugin assembly: …/<plugin>/../router/<rid>/rhino-mcp-router[.exe].
     internal static string RouterPath
@@ -35,6 +46,10 @@ internal static class RouterMcpConfig
     // Indented for the connector dialog's readability; harmless as a single argv string.
     private static JsonSerializerOptions IndentedOptions { get; } =
         new(McpSerializer.Options) { WriteIndented = true };
+
+    // Compact form for embedding a one-line entry inside the prompt text.
+    private static JsonSerializerOptions CompactOptions { get; } =
+        new(McpSerializer.Options) { WriteIndented = false };
 
     private static string Rid
     {

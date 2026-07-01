@@ -37,7 +37,11 @@
         "--startup-timeout",
         "${user_config.startup_timeout}"
       ],
-      "env": {}
+      "env": {
+        "RHINO_MCP_RHINO_EXE_8": "${user_config.rhino_8_location}",
+        "RHINO_MCP_RHINO_EXE_9": "${user_config.rhino_9_location}",
+        "RHINO_MCP_RHINO_EXE_WIP": "${user_config.rhino_wip_location}"
+      }
     }
   },
   "user_config": {
@@ -54,6 +58,27 @@
       "description": "How long to wait for Rhino to launch and become ready before giving up. Raise this on slow machines or when a license/EULA dialog needs clearing.",
       "required": false,
       "default": 120
+    },
+    "rhino_8_location": {
+      "type": "string",
+      "title": "Custom Rhino 8 Location",
+      "description": "Advanced. Launch a specific Rhino 8 build instead of the installed one. Point to Rhino.exe (Windows) or the Rhino app bundle, e.g. Rhino 8.app (macOS). Leave blank to use the installed Rhino 8.",
+      "required": false,
+      "default": ""
+    },
+    "rhino_9_location": {
+      "type": "string",
+      "title": "Custom Rhino 9 Location",
+      "description": "Advanced. Launch a specific Rhino 9 build instead of the installed one. Point to Rhino.exe (Windows) or the Rhino app bundle (macOS). Also used to serve WIP tool calls. Leave blank to use the installed Rhino 9.",
+      "required": false,
+      "default": ""
+    },
+    "rhino_wip_location": {
+      "type": "string",
+      "title": "Custom Rhino WIP Location",
+      "description": "Advanced. Launch a specific Rhino WIP build instead of the installed one. Point to Rhino.exe (Windows) or the Rhino app bundle (macOS). Leave blank to use the installed Rhino WIP.",
+      "required": false,
+      "default": ""
     }
   },
   "prompts": [

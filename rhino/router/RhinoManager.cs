@@ -149,7 +149,8 @@ public class RhinoManager(
     {
         try
         {
-            string rhinoExe = RhinoLocator.ResolveRhinoExe(version);
+            IReadOnlyDictionary<string, string>? overrides = config.RhinoExeOverrides;
+            string rhinoExe = RhinoLocator.ResolveRhinoExe(version, overrides);
 
 #if !DEBUG
             if (!RhinoLocator.IsPluginInstalled(version))
@@ -194,7 +195,7 @@ public class RhinoManager(
                 int port = store.ReservePort(slotId, ChildPortBase, IsPortListening);
                 log.LogInformation("Launching Rhino {Version} as slot '{Slot}' on port {Port} (app: {App})",
                     version, slotId, port, rhinoExe);
-                LaunchMac(rhinoExe, port);
+                LaunchMac(rhinoExe, port, forceNewInstance: RhinoLocator.IsOverride(version, overrides));
                 if (WaitForPort(port, TimeSpan.FromSeconds(StartupTimeoutSeconds)) != WaitResult.Bound)
                 {
                     throw new TimeoutException(
@@ -612,7 +613,9 @@ public class RhinoManager(
 
     // `open -a` exits immediately, so we resolve the Rhino pid via lsof later.
     // Port goes through an env var because runscript int args race with command registration.
-    private static void LaunchMac(string appPath, int port)
+    // forceNewInstance adds `-n`: a debug build shares the release bundle id, so
+    // without it `open` would just activate an already-running release Rhino.
+    private static void LaunchMac(string appPath, int port, bool forceNewInstance = false)
     {
         var psi = new ProcessStartInfo
         {
@@ -620,6 +623,7 @@ public class RhinoManager(
             UseShellExecute = false,
         };
         psi.Environment[PortEnvVar] = port.ToString();
+        if (forceNewInstance) psi.ArgumentList.Add("-n");
         psi.ArgumentList.Add("-a");
         psi.ArgumentList.Add(appPath);
         psi.ArgumentList.Add("--args");
