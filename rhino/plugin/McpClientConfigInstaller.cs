@@ -1,6 +1,4 @@
 using System.IO;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace RhMcp;
 
@@ -9,20 +7,9 @@ namespace RhMcp;
 // Detection and install are per-client and user-initiated from the Connect dialog's Install tab.
 // We never create configs for tools the user doesn't run (that would litter the home dir), and
 // injection is idempotent (a no-op once a `rhino` entry is present) and never overwrites one.
+// The actual config surgery lives in the Rhino-free McpConfigEdit; this handles disk IO and detection.
 internal static class McpClientConfigInstaller
 {
-    internal enum McpConfigFormat
-    {
-        // mcpServers: { rhino: { command } }  - Claude Code, Cursor, Gemini, Windsurf.
-        StandardJson,
-
-        // mcp: { rhino: { type: "local", command: [...], enabled: true } }  - OpenCode's shape.
-        OpenCodeJson,
-
-        // [mcp_servers.rhino] command = "..."  - Codex's TOML.
-        CodexToml,
-    }
-
     internal sealed record McpClient(string DisplayName, string RelativePath, McpConfigFormat Format);
 
     internal enum McpInstallState { Missing, Detected, Installed }
@@ -74,8 +61,8 @@ internal static class McpClientConfigInstaller
             if (HasRhinoEntry(client, original))
                 return McpInstallResult.AlreadyInstalled;
 
-            // null now means only "shape we can't safely amend": the already-present case is handled above.
-            string? updated = BuildUpdated(client, original, env);
+            // null means only "shape we can't safely amend": the already-present case is handled above.
+            string? updated = McpConfigEdit.Add(client.Format, original, RouterMcpConfig.ServerName, RouterMcpConfig.RouterPath, env);
             if (updated is null)
                 return McpInstallResult.Unsupported;
 
@@ -102,7 +89,7 @@ internal static class McpClientConfigInstaller
             if (!HasRhinoEntry(client, original))
                 return McpUninstallResult.NotInstalled;
 
-            string? updated = BuildRemoved(client, original);
+            string? updated = McpConfigEdit.Remove(client.Format, original, RouterMcpConfig.ServerName);
             if (updated is null)
                 return McpUninstallResult.Unsupported;
 
@@ -117,144 +104,8 @@ internal static class McpClientConfigInstaller
         }
     }
 
-    private static bool HasRhinoEntry(McpClient client, string content) => client.Format switch
-    {
-        McpConfigFormat.StandardJson => JsonHasEntry(content, "mcpServers"),
-        McpConfigFormat.OpenCodeJson => JsonHasEntry(content, "mcp"),
-        McpConfigFormat.CodexToml => Regex.IsMatch(content, TomlEntryPattern, RegexOptions.Multiline),
-        _ => false,
-    };
-
-    private static bool JsonHasEntry(string content, string containerKey)
-    {
-        JsonNode? root = JsonNode.Parse(content, documentOptions: LenientJson);
-        return root is JsonObject obj
-            && obj[containerKey] is JsonObject servers
-            && servers.ContainsKey(RouterMcpConfig.ServerName);
-    }
-
-    private static string? BuildUpdated(McpClient client, string original, IReadOnlyDictionary<string, string> env) => client.Format switch
-    {
-        McpConfigFormat.StandardJson => AddToJson(original, "mcpServers", () => StandardEntry(env)),
-        McpConfigFormat.OpenCodeJson => AddToJson(original, "mcp", () => OpenCodeEntry(env)),
-        McpConfigFormat.CodexToml => AddToToml(original, env),
-        _ => null,
-    };
-
-    private static string? BuildRemoved(McpClient client, string original) => client.Format switch
-    {
-        McpConfigFormat.StandardJson => RemoveFromJson(original, "mcpServers"),
-        McpConfigFormat.OpenCodeJson => RemoveFromJson(original, "mcp"),
-        McpConfigFormat.CodexToml => RemoveFromToml(original),
-        _ => null,
-    };
-
-    private static string? AddToJson(string original, string containerKey, Func<JsonNode> entry)
-    {
-        JsonNode? root = JsonNode.Parse(original, documentOptions: LenientJson);
-        if (root is not JsonObject obj)
-            return null;
-
-        switch (obj[containerKey])
-        {
-            // Mutate the existing map in place: reassigning an already-parented JsonNode throws.
-            case JsonObject servers when servers.ContainsKey(RouterMcpConfig.ServerName):
-                return null;
-            case JsonObject servers:
-                servers[RouterMcpConfig.ServerName] = entry();
-                break;
-            case null:
-                obj[containerKey] = new JsonObject { [RouterMcpConfig.ServerName] = entry() };
-                break;
-            default:
-                return null; // present but not a server map; don't risk clobbering it.
-        }
-
-        return obj.ToJsonString(IndentedJson);
-    }
-
-    private static string? RemoveFromJson(string original, string containerKey)
-    {
-        JsonNode? root = JsonNode.Parse(original, documentOptions: LenientJson);
-        if (root is not JsonObject obj || obj[containerKey] is not JsonObject servers)
-            return null;
-
-        servers.Remove(RouterMcpConfig.ServerName);
-        return obj.ToJsonString(IndentedJson);
-    }
-
-    // No TOML parser is bundled, so detect the section header textually and append the table if
-    // it's absent. A top-level table appended at EOF is always valid TOML regardless of what
-    // precedes it, which makes this safe without a full parse.
-    private static string? AddToToml(string original, IReadOnlyDictionary<string, string> env)
-    {
-        if (Regex.IsMatch(original, TomlEntryPattern, RegexOptions.Multiline))
-            return null;
-
-        string section =
-            $"[mcp_servers.{RouterMcpConfig.ServerName}]\n" +
-            $"command = {TomlBasicString(RouterMcpConfig.RouterPath)}\n";
-
-        if (env.Count > 0)
-        {
-            section += $"\n[mcp_servers.{RouterMcpConfig.ServerName}.env]\n";
-            foreach ((string key, string value) in env)
-                section += $"{key} = {TomlBasicString(value)}\n";
-        }
-
-        string separator = original.Length == 0 || original.EndsWith('\n') ? "\n" : "\n\n";
-        return original + separator + section;
-    }
-
-    // Must drop the rhino table's subtables too (the env block), or an orphaned [mcp_servers.rhino.env] is left.
-    private static string RemoveFromToml(string original)
-    {
-        List<string> kept = [];
-        bool removing = false;
-        foreach (string line in original.Split('\n'))
-        {
-            if (Regex.IsMatch(line, TomlHeaderPattern))
-                removing = Regex.IsMatch(line, TomlRhinoTablePattern);
-            if (!removing)
-                kept.Add(line);
-        }
-        return string.Join('\n', kept).TrimEnd() + "\n";
-    }
-
-    private const string TomlEntryPattern = """^\s*\[mcp_servers\.("?)rhino\1\]""";
-    private const string TomlHeaderPattern = """^\s*\[""";
-    private const string TomlRhinoTablePattern = """^\s*\[\[?mcp_servers\.("?)rhino\1(?:\.|\])""";
-
-    private static JsonNode StandardEntry(IReadOnlyDictionary<string, string> env)
-    {
-        JsonObject entry = new() { ["command"] = RouterMcpConfig.RouterPath };
-        if (EnvObject(env) is { } block)
-            entry["env"] = block;
-        return entry;
-    }
-
-    private static JsonNode OpenCodeEntry(IReadOnlyDictionary<string, string> env)
-    {
-        JsonObject entry = new()
-        {
-            ["type"] = "local",
-            ["command"] = new JsonArray(RouterMcpConfig.RouterPath),
-            ["enabled"] = true,
-        };
-        if (EnvObject(env) is { } block)
-            entry["environment"] = block;
-        return entry;
-    }
-
-    private static JsonObject? EnvObject(IReadOnlyDictionary<string, string> env)
-    {
-        if (env.Count == 0)
-            return null;
-        JsonObject block = new();
-        foreach ((string key, string value) in env)
-            block[key] = value;
-        return block;
-    }
+    private static bool HasRhinoEntry(McpClient client, string content) =>
+        McpConfigEdit.HasEntry(client.Format, content, RouterMcpConfig.ServerName);
 
     // Same-directory temp then atomic move, so a tool reading the config concurrently never sees a
     // half-written file. A unique temp name avoids two Rhino instances colliding on the same write.
@@ -271,15 +122,6 @@ internal static class McpClientConfigInstaller
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.GetFullPath(Path.Combine(home, relative));
     }
-
-    private static string TomlBasicString(string value) =>
-        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-
-    private static JsonDocumentOptions LenientJson { get; } =
-        new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-
-    private static JsonSerializerOptions IndentedJson { get; } =
-        new(McpSerializer.Options) { WriteIndented = true };
 
     private static void Log(string message)
     {
