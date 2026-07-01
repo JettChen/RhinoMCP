@@ -1,33 +1,24 @@
 using System.IO;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RhMcp;
 
-// On load, wire the bundled rhino MCP server into the configs of any MCP-aware tools the user
-// already has (Claude Code, Cursor, Codex, ...) so those external agents can drive Rhino without
-// the user copy-pasting the snippet from MCPConnect. We only touch files that already exist:
-// creating dotfiles for tools the user doesn't run would litter the home dir. Injection is
-// idempotent (a no-op once a `rhino` entry is present) and never overwrites an existing one.
+// Adds the bundled rhino MCP server to the configs of MCP-aware tools the user has (Claude Code,
+// Cursor, Codex, ...) so those external agents can drive Rhino without hand-copying the snippet.
+// Detection and install are per-client and user-initiated from the Connect dialog's Install tab.
+// We never create configs for tools the user doesn't run (that would litter the home dir), and
+// injection is idempotent (a no-op once a `rhino` entry is present) and never overwrites one.
+// The actual config surgery lives in the Rhino-free McpConfigEdit; this handles disk IO and detection.
 internal static class McpClientConfigInstaller
 {
-    private sealed record McpClientConfig(string DisplayName, string RelativePath, McpConfigFormat Format);
+    internal sealed record McpClient(string DisplayName, string RelativePath, McpConfigFormat Format);
 
-    private enum McpConfigFormat
-    {
-        // mcpServers: { rhino: { command } }  - Claude Code, Cursor, Gemini, Windsurf.
-        StandardJson,
+    internal enum McpInstallState { Missing, Detected, Installed }
 
-        // mcp: { rhino: { type: "local", command: [...], enabled: true } }  - OpenCode's shape.
-        OpenCodeJson,
+    internal enum McpInstallResult { Installed, AlreadyInstalled, Missing, Unsupported, Failed }
 
-        // [mcp_servers.rhino] command = "..."  - Codex's TOML.
-        CodexToml,
-    }
+    internal enum McpUninstallResult { Uninstalled, NotInstalled, Missing, Unsupported, Failed }
 
-    private static IReadOnlyList<McpClientConfig> KnownConfigs { get; } =
+    internal static IReadOnlyList<McpClient> Clients { get; } =
     [
         new("Claude Code", ".claude.json", McpConfigFormat.StandardJson),
         new("Cursor", ".cursor/mcp.json", McpConfigFormat.StandardJson),
@@ -37,113 +28,92 @@ internal static class McpClientConfigInstaller
         new("Codex", ".codex/config.toml", McpConfigFormat.CodexToml),
     ];
 
-    // Fire-and-forget from OnLoad: the scan is short-lived file IO and must never block startup
-    // or surface an exception into OnLoad. Everything below is swallowed and logged at worst.
-    public static void InstallInBackground(CancellationToken token) =>
-        _ = Task.Run(() => InstallAsync(token), token);
-
-    public static async Task InstallAsync(CancellationToken token)
+    // Cheap enough to call per grid row on every visit to the Install tab: a File.Exists plus one
+    // small read. An unreadable config counts as Detected so the user can still attempt the install
+    // (which reports its own error) rather than silently vanishing from the grid.
+    public static McpInstallState GetState(McpClient client)
     {
-        foreach (McpClientConfig config in KnownConfigs)
-        {
-            if (token.IsCancellationRequested)
-                return;
-
-            try
-            {
-                await EnsureRhinoEntryAsync(config, token).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Log($"skipped {config.DisplayName}: {ex.Message}");
-            }
-        }
-    }
-
-    private static async Task EnsureRhinoEntryAsync(McpClientConfig config, CancellationToken token)
-    {
-        string path = ResolvePath(config.RelativePath);
+        string path = ResolvePath(client.RelativePath);
         if (!File.Exists(path))
-            return;
+            return McpInstallState.Missing;
 
-        string original = await File.ReadAllTextAsync(path, token).ConfigureAwait(false);
-
-        // null means "nothing to write": the entry is already there, or the file isn't a shape we
-        // can safely amend. Either way we leave the user's file untouched.
-        string? updated = config.Format switch
+        try
         {
-            McpConfigFormat.StandardJson => AddToJson(original, "mcpServers", StandardEntry),
-            McpConfigFormat.OpenCodeJson => AddToJson(original, "mcp", OpenCodeEntry),
-            McpConfigFormat.CodexToml => AddToToml(original),
-            _ => throw new ArgumentOutOfRangeException(nameof(config), config.Format, "Unknown MCP config format."),
-        };
-
-        if (updated is null)
-            return;
-
-        await WriteAtomicAsync(path, updated, token).ConfigureAwait(false);
-        Log($"wired the Rhino MCP server into {config.DisplayName} ({path})");
-    }
-
-    private static string? AddToJson(string original, string containerKey, Func<JsonNode> entry)
-    {
-        JsonNode? root = JsonNode.Parse(original, documentOptions: LenientJson);
-        if (root is not JsonObject obj)
-            return null;
-
-        switch (obj[containerKey])
-        {
-            // Mutate the existing map in place: reassigning an already-parented JsonNode throws.
-            case JsonObject servers when servers.ContainsKey(RouterMcpConfig.ServerName):
-                return null;
-            case JsonObject servers:
-                servers[RouterMcpConfig.ServerName] = entry();
-                break;
-            case null:
-                obj[containerKey] = new JsonObject { [RouterMcpConfig.ServerName] = entry() };
-                break;
-            default:
-                return null; // present but not a server map; don't risk clobbering it.
+            return HasRhinoEntry(client, File.ReadAllText(path))
+                ? McpInstallState.Installed
+                : McpInstallState.Detected;
         }
-
-        return obj.ToJsonString(IndentedJson);
+        catch
+        {
+            return McpInstallState.Detected;
+        }
     }
 
-    // No TOML parser is bundled, so detect the section header textually and append the table if
-    // it's absent. A top-level table appended at EOF is always valid TOML regardless of what
-    // precedes it, which makes this safe without a full parse.
-    private static string? AddToToml(string original)
+    public static McpInstallResult Install(McpClient client, IReadOnlyDictionary<string, string> env)
     {
-        if (Regex.IsMatch(original, """^\s*\[mcp_servers\.("?)rhino\1\]""", RegexOptions.Multiline))
-            return null;
+        string path = ResolvePath(client.RelativePath);
+        if (!File.Exists(path))
+            return McpInstallResult.Missing;
 
-        string section =
-            $"[mcp_servers.{RouterMcpConfig.ServerName}]\n" +
-            $"command = {TomlBasicString(RouterMcpConfig.RouterPath)}\n";
+        try
+        {
+            string original = File.ReadAllText(path);
+            if (HasRhinoEntry(client, original))
+                return McpInstallResult.AlreadyInstalled;
 
-        string separator = original.Length == 0 || original.EndsWith('\n') ? "\n" : "\n\n";
-        return original + separator + section;
+            // null means only "shape we can't safely amend": the already-present case is handled above.
+            string? updated = McpConfigEdit.Add(client.Format, original, RouterMcpConfig.ServerName, RouterMcpConfig.RouterPath, env);
+            if (updated is null)
+                return McpInstallResult.Unsupported;
+
+            WriteAtomic(path, updated);
+            Log($"wired the Rhino MCP server into {client.DisplayName} ({path})");
+            return McpInstallResult.Installed;
+        }
+        catch (Exception ex)
+        {
+            Log($"failed to update {client.DisplayName}: {ex.Message}");
+            return McpInstallResult.Failed;
+        }
     }
 
-    private static JsonNode StandardEntry() => new JsonObject
+    public static McpUninstallResult Uninstall(McpClient client)
     {
-        ["command"] = RouterMcpConfig.RouterPath,
-    };
+        string path = ResolvePath(client.RelativePath);
+        if (!File.Exists(path))
+            return McpUninstallResult.Missing;
 
-    private static JsonNode OpenCodeEntry() => new JsonObject
-    {
-        ["type"] = "local",
-        ["command"] = new JsonArray(RouterMcpConfig.RouterPath),
-        ["enabled"] = true,
-    };
+        try
+        {
+            string original = File.ReadAllText(path);
+            if (!HasRhinoEntry(client, original))
+                return McpUninstallResult.NotInstalled;
+
+            string? updated = McpConfigEdit.Remove(client.Format, original, RouterMcpConfig.ServerName);
+            if (updated is null)
+                return McpUninstallResult.Unsupported;
+
+            WriteAtomic(path, updated);
+            Log($"removed the Rhino MCP server from {client.DisplayName} ({path})");
+            return McpUninstallResult.Uninstalled;
+        }
+        catch (Exception ex)
+        {
+            Log($"failed to update {client.DisplayName}: {ex.Message}");
+            return McpUninstallResult.Failed;
+        }
+    }
+
+    private static bool HasRhinoEntry(McpClient client, string content) =>
+        McpConfigEdit.HasEntry(client.Format, content, RouterMcpConfig.ServerName);
 
     // Same-directory temp then atomic move, so a tool reading the config concurrently never sees a
     // half-written file. A unique temp name avoids two Rhino instances colliding on the same write.
-    private static async Task WriteAtomicAsync(string path, string content, CancellationToken token)
+    private static void WriteAtomic(string path, string content)
     {
         string directory = Path.GetDirectoryName(path) ?? Directory.GetCurrentDirectory();
         string temp = Path.Combine(directory, $".rhmcp-{Guid.NewGuid():N}.tmp");
-        await File.WriteAllTextAsync(temp, content, token).ConfigureAwait(false);
+        File.WriteAllText(temp, content);
         File.Move(temp, path, overwrite: true);
     }
 
@@ -152,15 +122,6 @@ internal static class McpClientConfigInstaller
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return Path.GetFullPath(Path.Combine(home, relative));
     }
-
-    private static string TomlBasicString(string value) =>
-        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-
-    private static JsonDocumentOptions LenientJson { get; } =
-        new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-
-    private static JsonSerializerOptions IndentedJson { get; } =
-        new(McpSerializer.Options) { WriteIndented = true };
 
     private static void Log(string message)
     {

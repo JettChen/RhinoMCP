@@ -182,7 +182,7 @@
         }
       },
       "osx": {
-        "command": "/Applications/RhinoWIP.app/Contents/Resources/bin/yak",
+        "command": "/Applications/RhinoBETA.app/Contents/Resources/bin/yak",
         "args": ["install", "*.yak"],
         "options": {
           "cwd": "${workspaceFolder}/rhino/plugin/bin/R9-osx/Release"
@@ -235,7 +235,7 @@
         "command": "C:/Program Files/Rhino 9 WIP/System/Yak.exe"
       },
       "osx": {
-        "command": "/Applications/RhinoWIP.app/Contents/Resources/bin/yak"
+        "command": "/Applications/RhinoBETA.app/Contents/Resources/bin/yak"
       },
       "linux": {
         "command": "echo",

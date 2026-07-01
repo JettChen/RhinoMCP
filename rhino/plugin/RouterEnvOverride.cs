@@ -15,10 +15,13 @@ internal sealed record RouterEnvOverride(string EnvVar, string Label, string Def
     // when the default is "unset".
     public string Placeholder => Default.Length > 0 ? Default : "(installed default)";
 
+    public static RouterEnvOverride DefaultVersion { get; } =
+        new("RHINO_MCP_DEFAULT_VERSION", "Default version", "8",
+            "Rhino version auto-spawned for un-pinned tool calls: 8, 9, or WIP.");
+
     public static IReadOnlyList<RouterEnvOverride> Catalog { get; } =
     [
-        new("RHINO_MCP_DEFAULT_VERSION", "Default version", "8",
-            "Rhino version auto-spawned for un-pinned tool calls: 8, 9, or WIP."),
+        DefaultVersion,
         new("RHINO_MCP_STARTUP_TIMEOUT", "Startup timeout (s)", "120",
             "Seconds to wait for Rhino to bind its port before failing. Raise for slow or debug builds."),
         new("RHINO_MCP_RHINO_EXE_8", "Rhino 8 path", "",

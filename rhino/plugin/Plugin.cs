@@ -1,7 +1,6 @@
 using System.Drawing;
 using System.IO;
 using System.Reflection;
-using System.Threading;
 using Rhino.PlugIns;
 
 namespace RhMcp;
@@ -12,9 +11,6 @@ public class RhMcpPlugin : PlugIn
 
     private CommandInterceptorHost? CommandInterceptors { get; set; }
 
-    // Cancelled on shutdown so any startup background work stops cleanly with Rhino.
-    private CancellationTokenSource Shutdown { get; } = new();
-
     protected override LoadReturnCode OnLoad(ref string errorMessage)
     {
         RhinoDoc.BeginOpenDocument += Register;
@@ -24,10 +20,6 @@ public class RhMcpPlugin : PlugIn
         // Probe agent install paths once on load so the active agent resolves before the first
         // prompt; Part 1's settings dialog re-runs this when the agent config changes.
         AgentRegistry.Refresh();
-
-        // Wire the bundled rhino MCP server into any MCP-aware tools the user already has, so
-        // external agents work out of the box. Background: never block or fail OnLoad.
-        McpClientConfigInstaller.InstallInBackground(Shutdown.Token);
 
         Rhino.UI.Panels.RegisterPanel(this, typeof(AIPAnel), "AI", LoadPanelIcon(), Rhino.UI.PanelType.PerDoc);
         return base.OnLoad(ref errorMessage);
@@ -66,8 +58,6 @@ public class RhMcpPlugin : PlugIn
 
     protected override void OnShutdown()
     {
-        Shutdown.Cancel();
-        Shutdown.Dispose();
         CommandInterceptors?.Dispose();
         AgentHost.Shutdown();
     }
