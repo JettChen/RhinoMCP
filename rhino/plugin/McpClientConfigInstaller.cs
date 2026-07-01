@@ -29,6 +29,8 @@ internal static class McpClientConfigInstaller
 
     internal enum McpInstallResult { Installed, AlreadyInstalled, Missing, Unsupported, Failed }
 
+    internal enum McpUninstallResult { Uninstalled, NotInstalled, Missing, Unsupported, Failed }
+
     internal static IReadOnlyList<McpClient> Clients { get; } =
     [
         new("Claude Code", ".claude.json", McpConfigFormat.StandardJson),
@@ -60,7 +62,7 @@ internal static class McpClientConfigInstaller
         }
     }
 
-    public static McpInstallResult Install(McpClient client)
+    public static McpInstallResult Install(McpClient client, IReadOnlyDictionary<string, string> env)
     {
         string path = ResolvePath(client.RelativePath);
         if (!File.Exists(path))
@@ -73,7 +75,7 @@ internal static class McpClientConfigInstaller
                 return McpInstallResult.AlreadyInstalled;
 
             // null now means only "shape we can't safely amend": the already-present case is handled above.
-            string? updated = BuildUpdated(client, original);
+            string? updated = BuildUpdated(client, original, env);
             if (updated is null)
                 return McpInstallResult.Unsupported;
 
@@ -85,6 +87,33 @@ internal static class McpClientConfigInstaller
         {
             Log($"failed to update {client.DisplayName}: {ex.Message}");
             return McpInstallResult.Failed;
+        }
+    }
+
+    public static McpUninstallResult Uninstall(McpClient client)
+    {
+        string path = ResolvePath(client.RelativePath);
+        if (!File.Exists(path))
+            return McpUninstallResult.Missing;
+
+        try
+        {
+            string original = File.ReadAllText(path);
+            if (!HasRhinoEntry(client, original))
+                return McpUninstallResult.NotInstalled;
+
+            string? updated = BuildRemoved(client, original);
+            if (updated is null)
+                return McpUninstallResult.Unsupported;
+
+            WriteAtomic(path, updated);
+            Log($"removed the Rhino MCP server from {client.DisplayName} ({path})");
+            return McpUninstallResult.Uninstalled;
+        }
+        catch (Exception ex)
+        {
+            Log($"failed to update {client.DisplayName}: {ex.Message}");
+            return McpUninstallResult.Failed;
         }
     }
 
@@ -104,11 +133,19 @@ internal static class McpClientConfigInstaller
             && servers.ContainsKey(RouterMcpConfig.ServerName);
     }
 
-    private static string? BuildUpdated(McpClient client, string original) => client.Format switch
+    private static string? BuildUpdated(McpClient client, string original, IReadOnlyDictionary<string, string> env) => client.Format switch
     {
-        McpConfigFormat.StandardJson => AddToJson(original, "mcpServers", StandardEntry),
-        McpConfigFormat.OpenCodeJson => AddToJson(original, "mcp", OpenCodeEntry),
-        McpConfigFormat.CodexToml => AddToToml(original),
+        McpConfigFormat.StandardJson => AddToJson(original, "mcpServers", () => StandardEntry(env)),
+        McpConfigFormat.OpenCodeJson => AddToJson(original, "mcp", () => OpenCodeEntry(env)),
+        McpConfigFormat.CodexToml => AddToToml(original, env),
+        _ => null,
+    };
+
+    private static string? BuildRemoved(McpClient client, string original) => client.Format switch
+    {
+        McpConfigFormat.StandardJson => RemoveFromJson(original, "mcpServers"),
+        McpConfigFormat.OpenCodeJson => RemoveFromJson(original, "mcp"),
+        McpConfigFormat.CodexToml => RemoveFromToml(original),
         _ => null,
     };
 
@@ -136,10 +173,20 @@ internal static class McpClientConfigInstaller
         return obj.ToJsonString(IndentedJson);
     }
 
+    private static string? RemoveFromJson(string original, string containerKey)
+    {
+        JsonNode? root = JsonNode.Parse(original, documentOptions: LenientJson);
+        if (root is not JsonObject obj || obj[containerKey] is not JsonObject servers)
+            return null;
+
+        servers.Remove(RouterMcpConfig.ServerName);
+        return obj.ToJsonString(IndentedJson);
+    }
+
     // No TOML parser is bundled, so detect the section header textually and append the table if
     // it's absent. A top-level table appended at EOF is always valid TOML regardless of what
     // precedes it, which makes this safe without a full parse.
-    private static string? AddToToml(string original)
+    private static string? AddToToml(string original, IReadOnlyDictionary<string, string> env)
     {
         if (Regex.IsMatch(original, TomlEntryPattern, RegexOptions.Multiline))
             return null;
@@ -148,23 +195,66 @@ internal static class McpClientConfigInstaller
             $"[mcp_servers.{RouterMcpConfig.ServerName}]\n" +
             $"command = {TomlBasicString(RouterMcpConfig.RouterPath)}\n";
 
+        if (env.Count > 0)
+        {
+            section += $"\n[mcp_servers.{RouterMcpConfig.ServerName}.env]\n";
+            foreach ((string key, string value) in env)
+                section += $"{key} = {TomlBasicString(value)}\n";
+        }
+
         string separator = original.Length == 0 || original.EndsWith('\n') ? "\n" : "\n\n";
         return original + separator + section;
     }
 
+    // Must drop the rhino table's subtables too (the env block), or an orphaned [mcp_servers.rhino.env] is left.
+    private static string RemoveFromToml(string original)
+    {
+        List<string> kept = [];
+        bool removing = false;
+        foreach (string line in original.Split('\n'))
+        {
+            if (Regex.IsMatch(line, TomlHeaderPattern))
+                removing = Regex.IsMatch(line, TomlRhinoTablePattern);
+            if (!removing)
+                kept.Add(line);
+        }
+        return string.Join('\n', kept).TrimEnd() + "\n";
+    }
+
     private const string TomlEntryPattern = """^\s*\[mcp_servers\.("?)rhino\1\]""";
+    private const string TomlHeaderPattern = """^\s*\[""";
+    private const string TomlRhinoTablePattern = """^\s*\[\[?mcp_servers\.("?)rhino\1(?:\.|\])""";
 
-    private static JsonNode StandardEntry() => new JsonObject
+    private static JsonNode StandardEntry(IReadOnlyDictionary<string, string> env)
     {
-        ["command"] = RouterMcpConfig.RouterPath,
-    };
+        JsonObject entry = new() { ["command"] = RouterMcpConfig.RouterPath };
+        if (EnvObject(env) is { } block)
+            entry["env"] = block;
+        return entry;
+    }
 
-    private static JsonNode OpenCodeEntry() => new JsonObject
+    private static JsonNode OpenCodeEntry(IReadOnlyDictionary<string, string> env)
     {
-        ["type"] = "local",
-        ["command"] = new JsonArray(RouterMcpConfig.RouterPath),
-        ["enabled"] = true,
-    };
+        JsonObject entry = new()
+        {
+            ["type"] = "local",
+            ["command"] = new JsonArray(RouterMcpConfig.RouterPath),
+            ["enabled"] = true,
+        };
+        if (EnvObject(env) is { } block)
+            entry["environment"] = block;
+        return entry;
+    }
+
+    private static JsonObject? EnvObject(IReadOnlyDictionary<string, string> env)
+    {
+        if (env.Count == 0)
+            return null;
+        JsonObject block = new();
+        foreach ((string key, string value) in env)
+            block[key] = value;
+        return block;
+    }
 
     // Same-directory temp then atomic move, so a tool reading the config concurrently never sees a
     // half-written file. A unique temp name avoids two Rhino instances colliding on the same write.

@@ -127,14 +127,14 @@ internal sealed class ConnectDialog : Dialog
         });
     }
 
-    // Grid of MCP-aware agents: install the rhino server into a detected one with a click, or show a
-    // check once it's there. Backed by McpClientConfigInstaller, which also drove the old auto-install.
+    // Grid of MCP-aware agents: install the rhino server into a detected one with a click, or uninstall
+    // it from a connected one. Backed by McpClientConfigInstaller, which also drove the old auto-install.
     private Control BuildInstall()
     {
         Label help = new()
         {
-            Text = "Add the Rhino MCP server to any agent detected on this machine. Detected agents show an "
-                + "Install button; already-connected ones show a check.",
+            Text = "Add or remove the Rhino MCP server for any agent detected on this machine. Detected agents "
+                + "show an Install button; connected ones show an Uninstall button.",
             Wrap = WrapMode.Word,
             TextColor = Colors.Gray,
         };
@@ -157,40 +157,70 @@ internal sealed class ConnectDialog : Dialog
         TableLayout table = new() { Spacing = new Size(16, 8) };
         table.Rows.Add(new TableRow(
             new TableCell(HeaderLabel("Agent"), scaleWidth: true),
-            new TableCell(HeaderLabel("Status"))));
+            new TableCell(HeaderLabel("Status")),
+            new TableCell(HeaderLabel(""))));
 
         foreach (McpClientConfigInstaller.McpClient client in McpClientConfigInstaller.Clients)
         {
+            McpClientConfigInstaller.McpInstallState state = McpClientConfigInstaller.GetState(client);
             table.Rows.Add(new TableRow(
                 new TableCell(new Label { Text = client.DisplayName, VerticalAlignment = VerticalAlignment.Center }, scaleWidth: true),
-                new TableCell(StatusControl(client))));
+                new TableCell(StatusLabel(state)),
+                new TableCell(ActionControl(client, state))));
         }
 
         table.Rows.Add(null); // soak up spare vertical space
         _installHost.Content = new Scrollable { Content = table, Border = BorderType.None };
     }
 
-    private Control StatusControl(McpClientConfigInstaller.McpClient client) =>
-        McpClientConfigInstaller.GetState(client) switch
-        {
-            McpClientConfigInstaller.McpInstallState.Installed =>
-                new Label { Text = "✓ Installed", TextColor = Colors.Green, VerticalAlignment = VerticalAlignment.Center },
-            McpClientConfigInstaller.McpInstallState.Detected => InstallButton(client),
-            _ => new Label { Text = "Not detected", TextColor = Colors.Gray, VerticalAlignment = VerticalAlignment.Center },
-        };
+    private static Control StatusLabel(McpClientConfigInstaller.McpInstallState state) => state switch
+    {
+        McpClientConfigInstaller.McpInstallState.Installed =>
+            new Label { Text = "✓ Installed", TextColor = Colors.Green, VerticalAlignment = VerticalAlignment.Center },
+        McpClientConfigInstaller.McpInstallState.Detected =>
+            new Label { Text = "Detected", TextColor = Colors.Gray, VerticalAlignment = VerticalAlignment.Center },
+        _ =>
+            new Label { Text = "Not detected", TextColor = Colors.Gray, VerticalAlignment = VerticalAlignment.Center },
+    };
+
+    private Control ActionControl(McpClientConfigInstaller.McpClient client, McpClientConfigInstaller.McpInstallState state) => state switch
+    {
+        McpClientConfigInstaller.McpInstallState.Installed => UninstallButton(client),
+        McpClientConfigInstaller.McpInstallState.Detected => InstallButton(client),
+        _ => new Panel(),
+    };
 
     private Button InstallButton(McpClientConfigInstaller.McpClient client)
     {
         Button button = new() { Text = "Install" };
         button.Click += (_, _) =>
         {
-            McpClientConfigInstaller.McpInstallResult result = McpClientConfigInstaller.Install(client);
+            McpClientConfigInstaller.McpInstallResult result = McpClientConfigInstaller.Install(client, CurrentEnv());
             if (result is McpClientConfigInstaller.McpInstallResult.Unsupported or McpClientConfigInstaller.McpInstallResult.Failed)
                 MessageBox.Show(
                     this,
                     $"Couldn't add the Rhino MCP server to {client.DisplayName}. Its config may be in a shape we can't safely edit; "
                         + "use the mcp.json tab to add it by hand.",
                     "Install",
+                    MessageBoxButtons.OK,
+                    MessageBoxType.Warning);
+            PopulateInstall();
+        };
+        return button;
+    }
+
+    private Button UninstallButton(McpClientConfigInstaller.McpClient client)
+    {
+        Button button = new() { Text = "Uninstall" };
+        button.Click += (_, _) =>
+        {
+            McpClientConfigInstaller.McpUninstallResult result = McpClientConfigInstaller.Uninstall(client);
+            if (result is McpClientConfigInstaller.McpUninstallResult.Unsupported or McpClientConfigInstaller.McpUninstallResult.Failed)
+                MessageBox.Show(
+                    this,
+                    $"Couldn't remove the Rhino MCP server from {client.DisplayName}. Its config may be in a shape we can't safely edit; "
+                        + "remove the rhino entry by hand.",
+                    "Uninstall",
                     MessageBoxButtons.OK,
                     MessageBoxType.Warning);
             PopulateInstall();
@@ -207,7 +237,7 @@ internal sealed class ConnectDialog : Dialog
 
         foreach (RouterEnvOverride ov in RouterEnvOverride.Catalog)
         {
-            TextBox field = new() { PlaceholderText = ov.Placeholder, ToolTip = ov.Help };
+            TextBox field = new() { PlaceholderText = ov.Placeholder, ToolTip = ov.Help, Text = SeedValue(ov) };
             field.TextChanged += (_, _) => Refresh();
             _fields[ov] = field;
 
@@ -218,6 +248,11 @@ internal sealed class ConnectDialog : Dialog
         table.Rows.Add(null); // soak up spare vertical space
         return Pad(new Scrollable { Content = table, Border = BorderType.None });
     }
+
+    private static string SeedValue(RouterEnvOverride ov) =>
+        ov == RouterEnvOverride.DefaultVersion && RhinoVersion.Token != ov.Default
+            ? RhinoVersion.Token
+            : string.Empty;
 
     // Only fields the user changed from their default become env entries.
     private IReadOnlyDictionary<string, string> CurrentEnv()

@@ -201,7 +201,7 @@ public static class RhinoMcpHost
             var dir = ListenerDropDir();
             Directory.CreateDirectory(dir);
             var pid = Process.GetCurrentProcess().Id;
-            var version = RhinoApp.Version.Major.ToString();
+            var version = RhinoVersion.Token;
             var path = Path.Combine(dir, $"{pid}-{port}.json");
             var tmp = path + ".tmp";
             var json = JsonSerializer.Serialize(new { v = 1, pid, port, version });
@@ -228,7 +228,7 @@ public static class RhinoMcpHost
             string dir = ListenerDropDir();
             Directory.CreateDirectory(dir);
             int pid = Process.GetCurrentProcess().Id;
-            string version = RhinoApp.Version.Major.ToString();
+            string version = RhinoVersion.Token;
             string path = Path.Combine(dir, $"{pid}-{port}.gone");
             string tmp = path + ".tmp";
             string json = JsonSerializer.Serialize(new { v = 1, pid, port, version });
