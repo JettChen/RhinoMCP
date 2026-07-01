@@ -96,4 +96,39 @@ public static class RhinoLocator
                 yield return version;
         }
     }
+
+    public static IReadOnlyList<string> ListVersionsWithPlugin() =>
+        [.. ListInstalledVersions().Where(IsPluginInstalled)];
+
+    // Must match rhino/plugin/manifest.yml `name`.
+    private const string PluginPackageName = "Rhino-MCP-Platform";
+
+    public static bool IsPluginInstalled(string version)
+    {
+        string? packagesRoot = YakPackagesRoot();
+        if (packagesRoot is null)
+            return true; // unknown platform: can't check, so don't block a launch
+
+        if (double.TryParse(version, out double versionMajor))
+        {
+            version = $"{(int)versionMajor}.0";
+        }
+
+        return Directory.Exists(Path.Combine(packagesRoot, version, PluginPackageName));
+    }
+
+    private static string? YakPackagesRoot()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "McNeel", "Rhinoceros", "packages");
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library", "Application Support", "McNeel", "Rhinoceros", "packages");
+
+        return null;
+    }
 }

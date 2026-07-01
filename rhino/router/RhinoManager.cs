@@ -43,7 +43,7 @@ public class RhinoManager(
 
     public Task<ChildRhino> SpawnAsync(string? version = null, CancellationToken ct = default)
     {
-        string resolved = version ?? config.DefaultVersion;
+        string resolved = version ?? ChooseDefaultVersion();
         store.ReapStaleLaunching(StaleLaunchingMaxAge);
         ReapAllDead();
         (SlotReservation reservation, string slotId) = store.ReserveNewNamed(resolved, _routerPid);
@@ -96,8 +96,20 @@ public class RhinoManager(
             .FirstOrDefault(c => c.Status == SlotStatus.Ready && !c.Adopted);
         if (mine is not null) return (mine, false);
 
-        ChildRhino spawned = await SpawnAsync(config.DefaultVersion, ct).ConfigureAwait(false);
+        ChildRhino spawned = await SpawnAsync(null, ct).ConfigureAwait(false);
         return (spawned, true);
+    }
+
+    private string ChooseDefaultVersion()
+    {
+#if DEBUG
+        return config.DefaultVersion;
+#else
+        IReadOnlyList<string> usable = RhinoLocator.ListVersionsWithPlugin();
+        return usable.Contains(config.DefaultVersion)
+            ? config.DefaultVersion
+            : usable.FirstOrDefault() ?? config.DefaultVersion;
+#endif
     }
 
     private async Task<ChildRhino> DispatchReservationAsync(
@@ -138,6 +150,11 @@ public class RhinoManager(
         try
         {
             string rhinoExe = RhinoLocator.ResolveRhinoExe(version);
+
+#if !DEBUG
+            if (!RhinoLocator.IsPluginInstalled(version))
+                throw new PluginNotInstalledException(version, RhinoLocator.ListVersionsWithPlugin());
+#endif
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
