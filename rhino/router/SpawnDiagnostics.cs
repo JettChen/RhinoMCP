@@ -21,6 +21,13 @@ public static class SpawnDiagnostics
                 diagnosis = new("rhino_not_installed", fnf.Message);
                 return true;
 
+            // Rhino is installed but its MCP plugin isn't, so the launch would time
+            // out waiting for a port that never binds. The message names which
+            // versions do have it and links the setup guide.
+            case PluginNotInstalledException pnie:
+                diagnosis = new("plugin_not_installed", pnie.Message);
+                return true;
+
             case TimeoutException te:
                 diagnosis = new(
                     "startup_timeout",

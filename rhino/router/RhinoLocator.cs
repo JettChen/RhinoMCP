@@ -96,4 +96,45 @@ public static class RhinoLocator
                 yield return version;
         }
     }
+
+    // Installed Rhino versions that also have the MCP plugin available. A miss on
+    // the plugin means launching that Rhino would come up but never bind its port,
+    // so callers use this to steer the default spawn toward a usable version.
+    public static IReadOnlyList<string> ListVersionsWithPlugin() =>
+        [.. ListInstalledVersions().Where(IsPluginInstalled)];
+
+    // The Yak package name the plugin ships under; must match rhino/plugin/manifest.yml `name`.
+    private const string PluginPackageName = "Rhino-MCP-Platform";
+
+    // Is the MCP plugin installed for `version`? Yak drops the package under
+    // packages/<major>.0/<PackageName>, and a Release Rhino always installs it that
+    // way, so a folder probe is authoritative. The whole Rhino 9 family (9/BETA/WIP)
+    // shares one packages/9.0 tree, matching how a 9-family build loads it.
+    public static bool IsPluginInstalled(string version)
+    {
+        string? packagesRoot = YakPackagesRoot();
+        if (packagesRoot is null)
+            return true; // unknown platform: don't block a launch on a check we can't make
+
+        string major = version.Equals("8", StringComparison.OrdinalIgnoreCase) ? "8.0" : "9.0";
+        return Directory.Exists(Path.Combine(packagesRoot, major, PluginPackageName));
+    }
+
+    // Root of Yak's per-version package tree. Windows: %APPDATA%\McNeel\Rhinoceros\
+    // packages. macOS: ~/Library/Application Support/McNeel/Rhinoceros/packages —
+    // NOT ~/.config, which is where .NET's ApplicationData resolves on macOS.
+    private static string? YakPackagesRoot()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "McNeel", "Rhinoceros", "packages");
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library", "Application Support", "McNeel", "Rhinoceros", "packages");
+
+        return null;
+    }
 }

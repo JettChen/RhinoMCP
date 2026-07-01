@@ -96,8 +96,23 @@ public class RhinoManager(
             .FirstOrDefault(c => c.Status == SlotStatus.Ready && !c.Adopted);
         if (mine is not null) return (mine, false);
 
-        ChildRhino spawned = await SpawnAsync(config.DefaultVersion, ct).ConfigureAwait(false);
+        ChildRhino spawned = await SpawnAsync(ChooseDefaultVersion(), ct).ConfigureAwait(false);
         return (spawned, true);
+    }
+
+    // For a no-preference auto-spawn, prefer a version that actually has the plugin
+    // so we don't launch a Rhino that can never bind. If none does, fall back to the
+    // configured default and let the leader path surface a plugin_not_installed error.
+    // Compiled out of Debug, where the plugin loads from bin and can't be seen on disk.
+    private string ChooseDefaultVersion()
+    {
+#if DEBUG
+        return config.DefaultVersion;
+#else
+        return RhinoLocator.IsPluginInstalled(config.DefaultVersion)
+            ? config.DefaultVersion
+            : RhinoLocator.ListVersionsWithPlugin().FirstOrDefault() ?? config.DefaultVersion;
+#endif
     }
 
     private async Task<ChildRhino> DispatchReservationAsync(
@@ -138,6 +153,16 @@ public class RhinoManager(
         try
         {
             string rhinoExe = RhinoLocator.ResolveRhinoExe(version);
+
+#if !DEBUG
+            // A Rhino without the plugin launches fine but never binds its port, so
+            // catch it here rather than eating the full startup timeout. Only the
+            // leader path starts a fresh process; followers reuse a Rhino that has
+            // the plugin by definition. Dev builds load the plugin from bin, so the
+            // Yak-folder probe would false-negative and this is compiled out.
+            if (!RhinoLocator.IsPluginInstalled(version))
+                throw new PluginNotInstalledException(version, RhinoLocator.ListVersionsWithPlugin());
+#endif
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
