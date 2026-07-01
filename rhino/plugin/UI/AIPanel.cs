@@ -323,7 +323,7 @@ public class AIPAnel : Panel
             foreach (ResolvedAgent r in chain)
             {
                 string suffix = !r.Definition.Enabled ? " (disabled)" : !r.Available ? " (not found)" : string.Empty;
-                AgentPicker.Items.Add(new ListItem { Text = r.Definition.Name + suffix, Key = r.Definition.Name });
+                AgentPicker.Items.Add(new ListItem { Text = PrettyName.Of(r.Definition.Name) + suffix, Key = r.Definition.Name });
             }
 
             // Reflect the resolved active agent without pinning: only a genuine user pick should
@@ -350,7 +350,7 @@ public class AIPAnel : Panel
         string key = AgentPicker.SelectedKey ?? string.Empty;
         ResolvedAgent? match = AgentRegistry.Chain.FirstOrDefault(r => r.Definition.Name == key);
         string model = match is { Definition.Model: { Length: > 0 } m } ? m : "default";
-        ModelLabel.Text = $"model: {model}";
+        ModelLabel.Text = $"model: {PrettyName.Of(model)}";
     }
 
     private void PopulateRecents()
@@ -376,7 +376,7 @@ public class AIPAnel : Panel
         string first = convo.Turns.Count > 0 ? convo.Turns[0].Prompt : "(empty)";
         if (first.Length > 32)
             first = first[..32] + "…";
-        return $"{when} · {convo.AgentName} · {first}";
+        return $"{when} · {PrettyName.Of(convo.AgentName)} · {first}";
     }
 
     private void OnAgentPicked(object? sender, EventArgs e)
@@ -929,7 +929,7 @@ public class AIPAnel : Panel
             Spacing = 6,
             Items = { back, resume },
         });
-        TranscriptStack.Items.Add(SystemLine($"{convo.DocTitle} · {convo.AgentName} (read-only)"));
+        TranscriptStack.Items.Add(SystemLine($"{convo.DocTitle} · {PrettyName.Of(convo.AgentName)} (read-only)"));
 
         TranscriptViewModel vm = TranscriptViewModel.FromReview(convo);
         foreach (TranscriptItem item in vm.Items)
