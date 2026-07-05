@@ -15,7 +15,7 @@ public static class RunPythonTool
         var tmp = Path.Combine(Path.GetTempPath(), $"rhino_mcp_{Guid.NewGuid():N}.py");
         File.WriteAllText(tmp, script);
         RhinoApp.CommandWindowCaptureEnabled = true;
-        RhinoApp.RunScript(doc.RuntimeSerialNumber, $"-ScriptEditor _Run \"{tmp}\"", false);
+        RhinoApp.RunScript(doc.RuntimeSerialNumber, $"_-ScriptEditor _Run \"{tmp}\"", false);
         string[] lines = RhinoApp.CapturedCommandWindowStrings(true);
         RhinoApp.CommandWindowCaptureEnabled = false;
         _ = Task.Delay(15_000).ContinueWith(_ => { try { File.Delete(tmp); } catch { } });
