@@ -57,30 +57,36 @@ internal static class AgentRegistry
 
     // Where a normally-installed CLI lands so it is found with zero config: every entry on PATH,
     // then the standard per-user/system install dirs, the npm global bin, and Claude Code's own
-    // local dir. On Windows the CLIs install as claude.cmd / claude.exe / gemini.cmd, so each
-    // dir+command is expanded by the executable extensions (the bare name never exists). De-duped,
-    // first-found-anywhere; probing and TryResolveCommand both just File.Exists each candidate, so
+    // local dir. On Windows the CLIs install as claude.exe (native installer) or claude.cmd /
+    // gemini.cmd (npm), so each dir+command is expanded by the executable extensions. De-duped,
+    // first-found-anywhere; probing and CliProcess.TryResolve both just File.Exists each candidate, so
     // adding to this list is the only seam needed to widen detection.
     public static IReadOnlyList<string> DefaultSearchPaths(string command)
     {
         List<string> candidates = new();
         foreach (string dir in CandidateDirs())
-            foreach (string ext in ExecutableExtensions())
+            foreach (string ext in ExecutableExtensions(command))
                 candidates.Add(Path.Combine(dir, command + ext));
         return candidates.Distinct().ToArray();
     }
 
-    // On non-Windows a CLI is the bare name (one variant, no extension). On Windows the launcher is
-    // a PATHEXT-resolved wrapper, so we probe each known extension; "" is included so a fully
-    // qualified command already carrying its extension still resolves.
-    private static IEnumerable<string> ExecutableExtensions()
+    // On non-Windows a CLI is the bare name (one variant, no extension). On Windows a bare command is
+    // resolved only through its PATHEXT variants (.EXE/.CMD/...), NEVER the extensionless name: probing
+    // the bare name resolves npm's POSIX shell shim (e.g. %APPDATA%\npm\claude), which CreateProcess
+    // rejects as "not a valid application for this OS platform". "" is offered only when the command
+    // already carries an executable extension (a full path like C:\tools\claude.exe) so it still resolves.
+    private static IEnumerable<string> ExecutableExtensions(string command)
     {
         if (!OperatingSystem.IsWindows())
             return [string.Empty];
 
-        string pathext = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD";
-        string[] fromEnv = pathext.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        return new[] { string.Empty }.Concat(fromEnv).Distinct(StringComparer.OrdinalIgnoreCase);
+        string[] pathext = (Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        bool carriesExt = pathext.Any(ext => command.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+        return carriesExt ? [string.Empty] : pathext;
     }
 
     private static IEnumerable<string> CandidateDirs()
@@ -93,6 +99,7 @@ internal static class AgentRegistry
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            yield return Path.Combine(home, ".local", "bin");
             yield return Path.Combine(appData, "npm");
             yield return Path.Combine(localAppData, "Microsoft", "WindowsApps");
         }

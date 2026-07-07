@@ -38,6 +38,7 @@
     <Compile Include="../../rhino/plugin/Agents/Attachment.cs" LinkBase="PluginSources" />
     <Compile Include="../../rhino/plugin/Agents/UserMessage.cs" LinkBase="PluginSources" />
     <Compile Include="../../rhino/plugin/Agents/AcpMessageMapper.cs" LinkBase="PluginSources" />
+    <Compile Include="../../rhino/plugin/Agents/CliProcess.cs" LinkBase="PluginSources" />
     <Compile Include="../../rhino/plugin/Agents/IStreamJsonParser.cs" LinkBase="PluginSources" />
     <Compile Include="../../rhino/plugin/Agents/ParsedLine.cs" LinkBase="PluginSources" />
     <Compile Include="../../rhino/plugin/Agents/TokenUsage.cs" LinkBase="PluginSources" />
