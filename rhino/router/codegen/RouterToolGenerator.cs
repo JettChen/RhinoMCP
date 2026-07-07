@@ -29,6 +29,11 @@ public class RouterToolGenerator : IIncrementalGenerator
     private const string OpenObjectType =
         "global::System.Collections.Generic.Dictionary<string, global::System.Text.Json.JsonElement>?";
 
+    // Arrays of a complex element type map here, not to OpenObjectType: an object
+    // shape can't bind to the plugin's array parameter (RH-96785).
+    private const string OpenArrayType =
+        "global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>?";
+
     private static readonly HashSet<string> PassThroughTypes = new()
     {
         "string", "string?",
@@ -145,9 +150,9 @@ public class RouterToolGenerator : IIncrementalGenerator
         // Normalise whitespace inside the syntactic type. Arrays/nullables come through
         // as `string?`, `string[]`, `double?` etc.
         var t = typeText.Replace(" ", "");
-        return PassThroughTypes.Contains(t)
-            ? t
-            : OpenObjectType;
+        if (PassThroughTypes.Contains(t)) return t;
+        if (t.EndsWith("[]") || t.EndsWith("[]?")) return OpenArrayType;
+        return OpenObjectType;
     }
 
     private static void EmitProxy(StringBuilder sb, ToolInfo tool)
@@ -200,6 +205,15 @@ public class RouterToolGenerator : IIncrementalGenerator
                 sb.AppendLine($"            var __obj_{p.Name} = new global::System.Text.Json.Nodes.JsonObject();");
                 sb.AppendLine($"            foreach (var __kv in {p.Name}) __obj_{p.Name}[__kv.Key] = global::System.Text.Json.Nodes.JsonNode.Parse(__kv.Value.GetRawText());");
                 sb.AppendLine($"            args[\"{p.Name}\"] = __obj_{p.Name};");
+                sb.AppendLine("        }");
+            }
+            else if (p.Type == OpenArrayType)
+            {
+                sb.AppendLine($"        if ({p.Name} is not null)");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            var __arr_{p.Name} = new global::System.Text.Json.Nodes.JsonArray();");
+                sb.AppendLine($"            foreach (var __item in {p.Name}) __arr_{p.Name}.Add(global::System.Text.Json.Nodes.JsonNode.Parse(__item.GetRawText()));");
+                sb.AppendLine($"            args[\"{p.Name}\"] = __arr_{p.Name};");
                 sb.AppendLine("        }");
             }
             else if (p.Type.Contains("[]"))
