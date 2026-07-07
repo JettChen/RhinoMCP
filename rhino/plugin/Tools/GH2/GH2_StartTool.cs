@@ -17,7 +17,7 @@ public static class GH2_StartTool
         try
         {
             string commandName = Rhino.Commands.Command.IsCommand("_G2") ? "_G2" : "_GH2";
-            RhinoApp.RunScript(rhDoc.RuntimeSerialNumber, commandName, true);
+            RhinoApp.RunScript(doc.RuntimeSerialNumber, commandName, true);
             return Verify(doc);
         }
         catch (Exception ex)
