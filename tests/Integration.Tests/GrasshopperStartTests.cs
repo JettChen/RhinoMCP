@@ -15,7 +15,7 @@ public sealed class GrasshopperStartTests : RouterFixture
         _ = await _router.CallToolAsync("spawn_slot", Args.Of(("version", "8")));
 
         ReturnResult gh2 = await _router.CallToolAsync("g2_start");
-        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened G2").IgnoreCase);
+        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened GH2").IgnoreCase);
 
         ReturnResult list = await _router.CallToolAsync("list_slots");
         Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(2));
@@ -34,7 +34,7 @@ public sealed class GrasshopperStartTests : RouterFixture
     public async Task g2_start_with_no_host_spawns_one_slot()
     {
         ReturnResult gh2 = await _router.CallToolAsync("g2_start");
-        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened G2").IgnoreCase);
+        Assert.That(gh2.Payload?.GetString(), Does.Contain("Opened GH2").IgnoreCase);
 
         ReturnResult list = await _router.CallToolAsync("list_slots");
         Assert.That(list.Payload?.GetArrayLength(), Is.EqualTo(1));
