@@ -249,10 +249,16 @@ internal sealed class ConnectDialog : Dialog
         return Pad(new Scrollable { Content = table, Border = BorderType.None });
     }
 
-    private static string SeedValue(RouterEnvOverride ov) =>
-        ov == RouterEnvOverride.DefaultVersion && RhinoVersion.Token != ov.Default
-            ? RhinoVersion.Token
-            : string.Empty;
+    private static string SeedValue(RouterEnvOverride ov)
+    {
+        if (ov == RouterEnvOverride.DefaultVersion && RhinoVersion.Token != ov.Default)
+            return RhinoVersion.Token;
+
+        if (RunningRhino.SourceBuildOverride is (string envVar, string path) && ov.EnvVar == envVar)
+            return path;
+
+        return string.Empty;
+    }
 
     // Only fields the user changed from their default become env entries.
     private IReadOnlyDictionary<string, string> CurrentEnv()
