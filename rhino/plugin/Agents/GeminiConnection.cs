@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Acp;
@@ -12,12 +11,11 @@ internal static class GeminiConnection
 {
     public static IAcpAgent Connect(AgentDefinition def, IAcpClient client, string cwd)
     {
-        if (!TryResolveCommand(def.SearchPaths, out string path))
+        if (!CliProcess.TryResolve(def.SearchPaths, out string path))
             throw new FileNotFoundException("Gemini CLI not found. Install it (npm i -g @google/gemini-cli).");
 
         ProcessStartInfo psi = new()
         {
-            FileName = path,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -25,6 +23,7 @@ internal static class GeminiConnection
             CreateNoWindow = true,
             WorkingDirectory = cwd,
         };
+        CliProcess.ConfigureFileName(psi, path);
         psi.ArgumentList.Add("--experimental-acp");
         foreach (string arg in def.ExtraArgs)
             psi.ArgumentList.Add(arg);
@@ -62,19 +61,5 @@ internal static class GeminiConnection
             proc.Dispose();
             throw;
         }
-    }
-
-    // First match wins: SearchPaths leads with PATH, the authoritative source. Identical semantics
-    // to StreamJsonAgent.TryResolveCommand so both agents resolve the same binary off the same list.
-    private static bool TryResolveCommand(IReadOnlyList<string> searchPaths, out string path)
-    {
-        foreach (string candidate in searchPaths)
-            if (File.Exists(candidate))
-            {
-                path = candidate;
-                return true;
-            }
-        path = string.Empty;
-        return false;
     }
 }

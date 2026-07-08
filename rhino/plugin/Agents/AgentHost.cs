@@ -109,6 +109,12 @@ internal static class AgentHost
         DisposeDoc(doc.RuntimeSerialNumber);
     }
 
+    public static void Drop(RhinoDoc doc, string name)
+    {
+        if (Agents.Remove((doc.RuntimeSerialNumber, name), out IAgentRunner? agent))
+            SafeDispose(agent);
+    }
+
     public static void Shutdown()
     {
         foreach (IAgentRunner agent in Agents.Values.ToArray())

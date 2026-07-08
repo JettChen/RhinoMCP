@@ -170,12 +170,11 @@ internal sealed class StreamJsonAgent : IAcpAgent, IDisposable
 
     private Task StartAsync()
     {
-        if (!TryResolveCommand(out string path))
+        if (!CliProcess.TryResolve(Definition.SearchPaths, out string path))
             throw new FileNotFoundException(Parser.NotFoundMessage);
 
         ProcessStartInfo psi = new()
         {
-            FileName = path,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -183,6 +182,7 @@ internal sealed class StreamJsonAgent : IAcpAgent, IDisposable
             CreateNoWindow = true,
             WorkingDirectory = Cwd,
         };
+        CliProcess.ConfigureFileName(psi, path);
         Parser.ConfigureArguments(psi, McpUrl, AgentSessionIdText, ResolveMcpServers(), HasEverStarted);
 
         Process proc = new() { StartInfo = psi };
@@ -207,20 +207,6 @@ internal sealed class StreamJsonAgent : IAcpAgent, IDisposable
         }
         _ = Task.Run(() => ReadLoopAsync(proc.StandardOutput, proc));
         return Task.CompletedTask;
-    }
-
-    // The CLI binary search paths are an AgentDefinition concern, but the resolver lives here because
-    // it is process spawning, not parsing.
-    private bool TryResolveCommand(out string path)
-    {
-        foreach (string candidate in Definition.SearchPaths)
-            if (File.Exists(candidate))
-            {
-                path = candidate; // first match wins: SearchPaths leads with PATH, the authoritative source
-                return true;
-            }
-        path = string.Empty;
-        return false;
     }
 
     // The runner resolves the MCP server set from AISettings (the parser stays settings-free). Each
