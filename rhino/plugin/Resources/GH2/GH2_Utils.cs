@@ -20,8 +20,8 @@ public static class GH2_Utils
     Editor editor = Editor.Instance;
     if (editor is null)
     {
-      RhinoApp.RunScript(rhDoc.RuntimeSerialNumber, "_G2", true);
-      editor = Editor.Instance;
+        string commandName = Rhino.Commands.Command.IsCommand("_G2") ? "_G2" : "_GH2";
+        RhinoApp.RunScript(rhDoc.RuntimeSerialNumber, commandName, true);
       if (editor is null) return false;
     }
 
