@@ -86,6 +86,33 @@ public class CodegenTests
         Assert.That(output, Does.Not.Contain("Description(\"\")"));
     }
 
+    [Test]
+    public void Array_of_record_param_forwards_as_json_array()
+    {
+        // RH-96785: an array of a record type must map to an open array and forward
+        // as a JsonArray. It used to map to an open object the plugin couldn't bind.
+        string output = RunGenerator(
+            """
+            namespace RhMcp.Tools;
+
+            [McpServerToolType]
+            public class WTool
+            {
+                public record struct WireSpec(string SrcKey, string Src, string DstKey, string Dst);
+
+                [McpServerTool("w", "W", false, false)]
+                public static string Run(
+                    RhinoDoc doc,
+                    [Description("wires")] WireSpec[] wires) => "ok";
+            }
+            """);
+
+        Assert.That(output, Does.Contain("List<global::System.Text.Json.JsonElement>? wires"));
+        Assert.That(output, Does.Contain("var __arr_wires = new global::System.Text.Json.Nodes.JsonArray();"));
+        Assert.That(output, Does.Contain("__arr_wires.Add(global::System.Text.Json.Nodes.JsonNode.Parse(__item.GetRawText()));"));
+        Assert.That(output, Does.Not.Contain("__obj_wires"));
+    }
+
     private static string RunGenerator(string toolSource)
     {
         SyntaxTree compilationTree = CSharpSyntaxTree.ParseText("// placeholder compilation unit");

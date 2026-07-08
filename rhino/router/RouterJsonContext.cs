@@ -31,6 +31,7 @@ namespace RhMcp.Router;
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(JsonElement?))]
 [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
+[JsonSerializable(typeof(List<JsonElement>))]
 
 // Primitives used as tool param/return types. MCP's schema generation walks
 // these via our resolver, so they must each be declared explicitly when the
