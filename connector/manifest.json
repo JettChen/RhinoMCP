@@ -15,10 +15,6 @@
   "documentation": "https://github.com/mcneel/RhinoMCP#readme",
   "support": "https://discourse.mcneel.com/c/rhino/artificial-intelligence-rhino/162",
   "icon": "icon-light.png",
-  "icons": [
-    { "src": "icon-light.png", "size": "512x512", "theme": "light" },
-    { "src": "icon-dark.png", "size": "512x512", "theme": "dark" }
-  ],
   "screenshots": [
     "screenshots/casa-rhino.png"
   ],
